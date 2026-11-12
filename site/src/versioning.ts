@@ -31,6 +31,10 @@ const live = (slug: string) => `${site}/${slug ? slug + '/' : ''}`;
 const hrefIn = (v: { remote?: boolean }, slug: string) => (v.remote ? live(slug) : href(slug));
 const landingHref = (slug: string) => (site ? live(slug) : href(slug));
 
+/** The docset's name for a header: "Docker driver" -> "Docker Driver". */
+export const docsetName = (page: Page) =>
+  page.source ? docsets[page.source].title.replace(/\b[a-z]/g, (c) => c.toUpperCase()) : undefined;
+
 export function pageFor(id: string): Page | undefined {
   return bySlug.get(id.replace(/^\/|\/$/g, ''));
 }

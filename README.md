@@ -75,6 +75,9 @@ The preview:
   disappears, unless `docset.yml` lists the old page under `redirects:`;
 - is published to the source repo's `gh-pages` branch under `pr-<n>/`, so every
   open PR has its own preview at the same time;
+- shows only the header ("OpenShell Docker Driver"), this docset's sidebar and
+  the content. Pass `layout: full` to get the site's tabs and version picker
+  instead, linking to the live site;
 - posts one comment on the PR, updated on every run: the link, or the errors
   if the check fails. Closing the PR removes its preview.
 

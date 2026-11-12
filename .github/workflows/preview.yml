@@ -22,7 +22,7 @@
 #       uses: pimlock/openshell-docs/.github/workflows/preview.yml@main
 #       with:
 #         docset: driver-docker
-#         layout: fragment        # optional; default full
+#         layout: full            # optional; default fragment
 #       permissions:
 #         contents: write
 #         pull-requests: write
@@ -41,10 +41,10 @@ on:
         type: string
         default: https://pimlock.github.io/openshell-docs
       layout:
-        description: "full: the site's tabs and version picker (linking to the live site); fragment: header, this docset's sidebar and content only"
+        description: "fragment: header naming the docset, its sidebar and content; full: the site's tabs and version picker (linking to the live site)"
         required: false
         type: string
-        default: full
+        default: fragment
 
 jobs:
   preview:

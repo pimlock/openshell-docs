@@ -68,9 +68,10 @@ for (let i = 0; i < argv.length; i++) {
   i++;
 }
 const PREVIEW = args.preview;
-// Preview layout: "full" (the site's tabs, sub-tabs and version picker, linking
-// to the live site) or "fragment" (header, this docset's sidebar and content).
-const LAYOUT = args.layout ?? "full";
+// Preview layout: "fragment" (default: header naming the docset, its sidebar
+// and content) or "full" (the site's tabs, sub-tabs and version picker,
+// linking to the live site).
+const LAYOUT = args.layout ?? (PREVIEW ? "fragment" : "full");
 if (!["full", "fragment"].includes(LAYOUT)) throw new Error(`--layout must be full or fragment`);
 const out = path.resolve(args.out ?? path.join(root, "build", PREVIEW ? "preview" : "assembled"));
 const cache = path.resolve(args.cache ?? path.join(root, ".cache/sources"));

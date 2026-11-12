@@ -1,5 +1,5 @@
 import { defineRouteMiddleware } from '@astrojs/starlight/route-data';
-import { docsetsFor, layout, pageFor, pickerFor, sidebarFor, topicsFor } from './versioning';
+import { docsetName, docsetsFor, layout, pageFor, pickerFor, sidebarFor, topicsFor } from './versioning';
 
 export const onRequest = defineRouteMiddleware((context) => {
   const route = context.locals.starlightRoute;
@@ -15,6 +15,6 @@ export const onRequest = defineRouteMiddleware((context) => {
   // A fragment preview has no tabs, sub-tabs or version picker.
   (context.locals as any).osVersion =
     layout === 'fragment'
-      ? { fragment: true, topics: [], picker: undefined, docsets: undefined }
+      ? { fragment: true, name: docsetName(page), topics: [], picker: undefined, docsets: undefined }
       : { topics: topicsFor(page), picker: pickerFor(page), docsets: docsetsFor(page) };
 });

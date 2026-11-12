@@ -9,6 +9,8 @@ import SocialIcons from 'virtual:starlight/components/SocialIcons';
 
 const topics = (Astro.locals as any).osVersion?.topics ?? [];
 const fragment = !!(Astro.locals as any).osVersion?.fragment;
+// A fragment preview names its docset in the header: "OpenShell Docker Driver".
+const name = fragment ? (Astro.locals as any).osVersion?.name : undefined;
 const ds = (Astro.locals as any).osVersion?.docsets;
 const subtabs = ds
   ? [
@@ -24,7 +26,7 @@ const subtabs = ds
   <div class="os-header__row">
     <a href={import.meta.env.BASE_URL} class="os-wordmark" translate="no">
       <svg viewBox="0 0 24 24" aria-hidden="true" class="os-wordmark__mark"><rect width="24" height="24" rx="5" fill="#76b900"/><path d="M7 8.5 11 12l-4 3.5M12.5 16H17" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <span>OpenShell</span>
+      <span>OpenShell{name && <span class="os-wordmark__docset"> {name}</span>}</span>
     </a>
     <div class="os-header__search print:hidden"><Search /></div>
     <div class="os-header__end print:hidden">

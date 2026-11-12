@@ -97,6 +97,7 @@ body {
   letter-spacing: -0.01em;
   white-space: nowrap;
 }
+.os-wordmark__docset { font-weight: 500; }
 .os-wordmark__mark { width: 1.375rem; height: 1.375rem; color: var(--os-accent); }
 
 /* ---------- version picker (top of the sidebar) ---------- */
