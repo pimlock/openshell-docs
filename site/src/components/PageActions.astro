@@ -1,7 +1,10 @@
 ---
+import { pageFor } from '../versioning';
 // Page actions: Copy page / View as Markdown / Open in Claude / Open in ChatGPT, all driven by /<slug>.md.
 // The Markdown copy sits at the page's path plus .md (base path included).
 const md = Astro.url.pathname.replace(/\/$/, '') + '.md';
+// The page's source on GitHub, from the assembler (absent when there's nowhere to edit it).
+const edit = pageFor(Astro.locals.starlightRoute.id)?.edit;
 ---
 
 <os-page-actions class="os-actions print:hidden" data-md={md}>
@@ -19,6 +22,7 @@ const md = Astro.url.pathname.replace(/\/$/, '') + '.md';
     <a role="menuitem" href={md} target="_blank" rel="noopener"><strong>View as Markdown</strong><span>Open the raw Markdown of this page</span></a>
     <a role="menuitem" data-open="https://claude.ai/new?q=" href="https://claude.ai/new" target="_blank" rel="noopener"><strong>Open in Claude</strong><span>Ask questions about this page</span></a>
     <a role="menuitem" data-open="https://chatgpt.com/?hints=search&q=" href="https://chatgpt.com/" target="_blank" rel="noopener"><strong>Open in ChatGPT</strong><span>Ask questions about this page</span></a>
+    {edit && <a role="menuitem" href={edit} target="_blank" rel="noopener"><strong>Edit this page</strong><span>Suggest a change on GitHub</span></a>}
   </div>
 </os-page-actions>
 

@@ -63,6 +63,8 @@ jobs:
       DOCSET: ${{ inputs.docset }}
       SITE: ${{ inputs.site }}
       LAYOUT: ${{ inputs.layout }}
+      HEAD_REF: ${{ github.head_ref || github.ref_name }}
+      HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
     steps:
       - name: Choose the preview folder
         env:
@@ -105,7 +107,8 @@ jobs:
           if [ -n "$PR" ]; then REF="PR #$PR, $REF"; fi
           node assembler/assemble.mjs --preview "$DOCSET" --path ../source \
             --index "$SITE/links.json" --site "$SITE" --ref "$REF" \
-            --base "$BASE_PATH" --layout "$LAYOUT" --out build/preview 2>&1 | tee "$RUNNER_TEMP/assemble.log"
+            --base "$BASE_PATH" --layout "$LAYOUT" \
+            --branch "$HEAD_REF" --edit-repo "$HEAD_REPO" --out build/preview 2>&1 | tee "$RUNNER_TEMP/assemble.log"
       - name: Build
         working-directory: docs-site
         run: npm run site

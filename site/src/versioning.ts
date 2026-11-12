@@ -14,7 +14,7 @@ type Version = {
 type Docset = { title: string; description?: string; mount: string; latest: string; versions: Version[] };
 export type Page = {
   slug: string; title: string; source: string | null; version?: string; key: string; topic?: string;
-  latest?: boolean; dev?: boolean; preview?: boolean;
+  latest?: boolean; dev?: boolean; preview?: boolean; edit?: string;
 };
 
 const docsets = nav.docsets as unknown as Record<string, Docset>;

@@ -22,7 +22,8 @@
 //
 // Preview build (one repo, no access to the others):
 //   node assembler/assemble.mjs --preview driver-docker --path <checkout> \
-//     --index <site>/links.json --site <site url> [--ref pr-12] [--layout fragment]
+//     --index <site>/links.json --site <site url> [--ref pr-12] [--layout full] \
+//     [--branch <pr head branch> --edit-repo <owner/repo of that branch>]
 //
 // Everything outside the previewed repo comes from the published links.json.
 // Links into other repos are checked against it and point at the live site.
@@ -331,6 +332,18 @@ for (const page of pages) {
   writeFile(path.join("content", page.outRel), `---\n${YAML.stringify(fm)}---\n${siteBody(page.body)}`);
 }
 
+// "Edit this page": the same page on the source's dev branch (a tag can't be
+// edited, and fixes land on the branch). A preview edits the PR's branch.
+// No link when the dev branch no longer has the page.
+function editUrl(page) {
+  const dev = releasesOf[page.rel.id].find((r) => r.dev && !r.remote);
+  const repo = PREVIEW ? (args["edit-repo"] ?? dev?.repo) : dev?.repo;
+  const ref = PREVIEW ? args.branch : dev?.ref;
+  if (!dev || !ref || !/^[\w.-]+\/[\w.-]+$/.test(repo)) return undefined;
+  const same = dev.pages.find((x) => x.key === page.key);
+  return same && `https://github.com/${repo}/edit/${ref}/${join(dev.path, same.relPath)}`;
+}
+
 // ---------- 5. nav.json + pages.json ----------
 const navItems = (items, rel) =>
   items.map((it) =>
@@ -408,7 +421,7 @@ writeFile(
     pages
       .map((p) => ({
         slug: p.slug, file: p.outRel, title: p.data.title, source: p.rel.id, version: p.rel.version,
-        latest: !!p.rel.latest, dev: !!p.rel.dev, key: p.key, ...(PREVIEW ? { preview: true } : {}),
+        latest: !!p.rel.latest, dev: !!p.rel.dev, key: p.key, edit: editUrl(p), ...(PREVIEW ? { preview: true } : {}),
       }))
       .concat(landings.map((l) => ({ slug: l.slug, file: l.outRel, title: l.title, source: null, topic: l.topic, latest: true, key: "" }))),
     null,
