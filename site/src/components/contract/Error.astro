@@ -1,0 +1,6 @@
+---
+import Callout from './Callout.astro';
+const { title } = Astro.props;
+---
+
+<Callout kind="error" type="danger" title={title}><slot /></Callout>

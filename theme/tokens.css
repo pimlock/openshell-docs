@@ -1,0 +1,40 @@
+/* OpenShell docs theme tokens (prototype). Shared by all three generator prototypes.
+   Each prototype maps these onto its own variables (Starlight --sl-*, Docusaurus
+   Infima --ifm-*, Fumadocs --color-fd-*). Fonts: Geist + Geist Mono (Google Fonts). */
+:root {
+  --os-font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --os-font-mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  --os-bg: #ffffff;
+  --os-surface: #f6f7f4;        /* sidebar, code, cards */
+  --os-fg: #15170f;
+  --os-muted: #5d6356;
+  --os-border: #e1e4dc;
+  --os-accent: #76b900;         /* NVIDIA green: fills, rules, active markers */
+  --os-accent-text: #3f6600;    /* green that passes contrast as text on white */
+  --os-accent-soft: #eef6e0;
+
+  --os-note: #2f6fb3;   --os-note-soft: #e9f1fa;
+  --os-tip: #3f6600;    --os-tip-soft: #eef6e0;
+  --os-warn: #9a5b00;   --os-warn-soft: #fbf1e1;
+  --os-danger: #b42318; --os-danger-soft: #fdecea;
+
+  --os-radius: 6px;
+  --os-header-h: 56px;
+  --os-content-w: 760px;
+}
+:root[data-theme="dark"], .dark {
+  --os-bg: #0d0f0b;
+  --os-surface: #15180f;
+  --os-fg: #e6e9e1;
+  --os-muted: #9aa293;
+  --os-border: #262b21;
+  --os-accent: #76b900;
+  --os-accent-text: #9fd94a;
+  --os-accent-soft: #1d2a0e;
+
+  --os-note: #7fb2ea;   --os-note-soft: #142233;
+  --os-tip: #9fd94a;    --os-tip-soft: #1d2a0e;
+  --os-warn: #e9b35c;   --os-warn-soft: #2d2210;
+  --os-danger: #f08a80; --os-danger-soft: #331614;
+}

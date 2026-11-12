@@ -1,0 +1,10 @@
+---
+// Contract Badge takes its text as children; Starlight's Badge takes a `text` prop.
+import { Badge } from '@astrojs/starlight/components';
+interface Props { intent?: string; minimal?: boolean; outlined?: boolean }
+const { intent = 'default', minimal, outlined } = Astro.props;
+const variant = ({ tip: 'success', success: 'success', note: 'note', info: 'note', warning: 'caution', danger: 'danger', error: 'danger' } as const)[intent] ?? 'default';
+const text = (await Astro.slots.render('default')).trim();
+---
+
+<Badge text={text} variant={variant} class:list={['os-badge', { 'os-badge--minimal': minimal, 'os-badge--outlined': outlined }]} />

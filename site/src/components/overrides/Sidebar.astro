@@ -1,0 +1,9 @@
+---
+// Version picker for the current docset, above its pages. Sidebar entries
+// are set per page by src/routeData.ts.
+import Default from '@astrojs/starlight/components/Sidebar.astro';
+import VersionPicker from '../VersionPicker.astro';
+---
+
+<VersionPicker />
+<Default><slot /></Default>

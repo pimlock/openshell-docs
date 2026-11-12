@@ -1,0 +1,7 @@
+---
+const { badges = [] } = Astro.props as { badges: { href: string; src: string; alt: string }[] };
+---
+
+<p class="os-badge-links not-content">
+  {badges.map((b) => <a href={b.href}><img src={b.src} alt={b.alt} height="20" /></a>)}
+</p>

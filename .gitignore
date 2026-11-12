@@ -1,0 +1,9 @@
+node_modules/
+.cache/
+build/
+site/dist/
+site/.astro/
+site/src/content/docs/
+site/src/generated/
+site/public/
+site/src/styles/tokens.css

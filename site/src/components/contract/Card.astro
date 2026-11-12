@@ -1,0 +1,16 @@
+---
+import { Icon } from '@astrojs/starlight/components';
+interface Props { title: string; href?: string; icon?: string }
+const { title, href, icon } = Astro.props;
+const Tag = href ? 'a' : 'div';
+const external = href && /^https?:/.test(href);
+---
+
+<Tag class="os-card" href={href}>
+  <span class="os-card__title">
+    {icon && <Icon name={icon as any} />}
+    {title}
+    {href && <Icon name={external ? 'external' : 'right-arrow'} class="os-card__arrow" />}
+  </span>
+  <div class="os-card__body"><slot /></div>
+</Tag>

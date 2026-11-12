@@ -1,0 +1,9 @@
+---
+// Wraps Starlight's Aside; `kind` keeps the contract name for styling (Info vs Note).
+import { Aside } from '@astrojs/starlight/components';
+interface Props { kind: string; type: 'note' | 'tip' | 'caution' | 'danger'; title?: string }
+const { kind, type, title } = Astro.props;
+const defaults: Record<string, string> = { note: 'Note', tip: 'Tip', info: 'Info', warning: 'Warning', error: 'Error' };
+---
+
+<div class={`os-callout os-callout--${kind}`}><Aside type={type} title={title ?? defaults[kind]}><slot /></Aside></div>

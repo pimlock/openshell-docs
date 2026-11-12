@@ -1,0 +1,23 @@
+---
+# SPDX-FileCopyrightText: Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+# Hand-written intro for the generated /drivers/ page. Owned by the site repo.
+# The cards below it are generated.
+---
+
+Each gateway runs agent workloads on one compute runtime, selected by its compute driver. Pick the runtime that matches the isolation boundary and infrastructure you need. The CLI workflow stays the same across runtimes: you create, connect to, stop, start, and delete sandboxes through the gateway.
+
+## Choose a driver
+
+| Runtime | Driver | Use when |
+|---|---|---|
+| [Docker](driver-docker://setup) | `docker` | Local development and single-machine gateways. |
+| [Podman](driver-podman://setup) | `podman` | Rootless Linux workstations without a Docker daemon. |
+| [Kubernetes](core://kubernetes/setup) | `kubernetes` | Shared clusters, remote compute, and GPU scheduling. |
+
+Set `compute_driver` in the gateway TOML file. A gateway uses one driver at a time. When `compute_driver` is unset, the gateway auto-detects Kubernetes, then Podman, then Docker.
+
+```toml
+[openshell.gateway]
+compute_driver = "docker"
+```

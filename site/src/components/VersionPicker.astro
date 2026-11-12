@@ -1,0 +1,35 @@
+---
+// Version picker for the docset the current page belongs to. Each docset has
+// its own versions, so a driver page lists driver versions. Sits at the top
+// of the sidebar.
+const picker = (Astro.locals as any).osVersion?.picker;
+---
+
+{picker && (
+  <div class="os-version-field">
+  <span class="os-version-field__label" id="os-version-label">Version</span>
+  <details class="os-version" aria-labelledby="os-version-label">
+    <summary>
+      <span class="os-version__current">{picker.current}</span>
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+    </summary>
+    <ul class="os-version__menu">
+      {picker.options.map((o: any) => (
+        <li>
+          <a href={o.href} aria-current={o.current ? 'true' : undefined}>
+            <span class="os-version__name">{o.name}{o.latest && <span class="os-version__latest">latest</span>}{o.preview && <span class="os-version__latest">preview</span>}{o.dev && <span class="os-version__latest">unreleased</span>}{o.remote && <span aria-label="live site">↗</span>}</span>
+            {!o.samePage && <span class="os-version__hint">Page not in this version; opens its first page</span>}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </details>
+  </div>
+)}
+
+<script>
+  document.addEventListener('click', (e) => {
+    for (const d of document.querySelectorAll<HTMLDetailsElement>('details.os-version[open]'))
+      if (!d.contains(e.target as Node)) d.open = false;
+  });
+</script>

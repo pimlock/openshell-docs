@@ -1,0 +1,99 @@
+# Reusable docs preview for a source repo's pull requests.
+#
+# Builds ONLY the calling repo's docs, with this repo's theme and assembler.
+# Everything about the other repos comes from the live site's links.json:
+# links into them are checked and point at the live site, and pages that
+# they link to must survive the change (or be listed under `redirects:`).
+#
+# The preview is published to the calling repo's GitHub Pages site, so the
+# pull request shows a "View deployment" link. One preview per repo at a time.
+#
+# Caller (in the source repo, .github/workflows/docs-preview.yml):
+#
+#   on:
+#     pull_request:
+#       paths: [docs/**]
+#   jobs:
+#     docs:
+#       uses: pimlock/openshell-docs/.github/workflows/preview.yml@main
+#       with:
+#         docset: driver-docker
+#       permissions:
+#         contents: read
+#         pages: write
+#         id-token: write
+name: Docs preview
+
+on:
+  workflow_call:
+    inputs:
+      docset:
+        description: Docset id of the calling repo (see sources.yml)
+        required: true
+        type: string
+      site:
+        description: Live site that publishes links.json
+        required: false
+        type: string
+        default: https://pimlock.github.io/openshell-docs
+      deploy:
+        description: Publish the preview to the calling repo's GitHub Pages
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      BASE_PATH: /${{ github.event.repository.name }}/
+    steps:
+      - name: Check out the pull request
+        uses: actions/checkout@v4
+        with:
+          path: source
+      - name: Check out the docs site (theme + assembler)
+        uses: actions/checkout@v4
+        with:
+          repository: pimlock/openshell-docs
+          path: docs-site
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: docs-site/package-lock.json
+      - run: npm ci
+        working-directory: docs-site
+      - name: Assemble this docset against the published link index
+        working-directory: docs-site
+        run: >
+          node assembler/assemble.mjs --preview "${{ inputs.docset }}" --path ../source
+          --index "${{ inputs.site }}/links.json" --site "${{ inputs.site }}"
+          --ref "${{ github.event.pull_request && format('PR #{0} ({1})', github.event.pull_request.number, github.event.pull_request.head.sha) || github.sha }}"
+          --base "$BASE_PATH" --out build/preview
+      - name: Build
+        working-directory: docs-site
+        run: npm run site
+        env:
+          ASSEMBLED: build/preview
+          SITE_URL: https://${{ github.repository_owner }}.github.io
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs-site/site/dist
+
+  deploy:
+    if: inputs.deploy
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
+      - run: echo "Preview of ${{ inputs.docset }}: ${{ steps.deploy.outputs.page_url }}" >> "$GITHUB_STEP_SUMMARY"

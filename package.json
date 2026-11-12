@@ -1,0 +1,25 @@
+{
+  "name": "openshell-docs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "assemble": "node assembler/assemble.mjs",
+    "sync": "node site/scripts/sync.mjs",
+    "build": "npm run assemble && npm run site",
+    "site": "npm run sync && astro build --root site && node scripts/redirects.mjs site/dist",
+    "dev": "npm run sync && astro dev --root site"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "0.42.10",
+    "astro": "7.4.10",
+    "github-slugger": "2.0.0",
+    "remark-frontmatter": "5.0.0",
+    "remark-gfm": "4.0.1",
+    "remark-mdx": "3.1.1",
+    "remark-parse": "11.0.0",
+    "remark-stringify": "11.0.0",
+    "unified": "11.0.5",
+    "unist-util-visit": "5.2.0",
+    "yaml": "2.9.1"
+  }
+}

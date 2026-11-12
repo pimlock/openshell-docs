@@ -1,0 +1,14 @@
+---
+interface Props { path: string; type?: string; default?: string; required?: boolean }
+const { path, type, default: def, required } = Astro.props;
+---
+
+<div class="os-param" id={`param-${path}`}>
+  <div class="os-param__head">
+    <a class="os-param__name" href={`#param-${path}`}><code>{path}</code></a>
+    {type && <span class="os-param__type">{type}</span>}
+    {def !== undefined && <span class="os-param__default">default: <code>{def}</code></span>}
+    {required && <span class="os-param__required">required</span>}
+  </div>
+  <div class="os-param__body"><slot /></div>
+</div>

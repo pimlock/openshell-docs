@@ -1,0 +1,56 @@
+---
+// Page actions: Copy page / View as Markdown / Open in Claude / Open in ChatGPT, all driven by /<slug>.md.
+// The Markdown copy sits at the page's path plus .md (base path included).
+const md = Astro.url.pathname.replace(/\/$/, '') + '.md';
+---
+
+<os-page-actions class="os-actions print:hidden" data-md={md}>
+  <div class="os-actions__group">
+    <button type="button" class="os-actions__copy" data-action="copy">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5"/></svg>
+      <span data-label>Copy page</span>
+    </button>
+    <button type="button" class="os-actions__toggle" aria-haspopup="menu" aria-expanded="false" aria-label="More page actions">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>
+    </button>
+  </div>
+  <div class="os-actions__menu" role="menu" hidden>
+    <button type="button" role="menuitem" data-action="copy"><strong>Copy page</strong><span>Copy this page as Markdown for LLMs</span></button>
+    <a role="menuitem" href={md} target="_blank" rel="noopener"><strong>View as Markdown</strong><span>Open the raw Markdown of this page</span></a>
+    <a role="menuitem" data-open="https://claude.ai/new?q=" href="https://claude.ai/new" target="_blank" rel="noopener"><strong>Open in Claude</strong><span>Ask questions about this page</span></a>
+    <a role="menuitem" data-open="https://chatgpt.com/?hints=search&q=" href="https://chatgpt.com/" target="_blank" rel="noopener"><strong>Open in ChatGPT</strong><span>Ask questions about this page</span></a>
+  </div>
+</os-page-actions>
+
+<script>
+  class PageActions extends HTMLElement {
+    connectedCallback() {
+      const mdUrl = new URL(this.dataset.md!, location.origin).href;
+      const menu = this.querySelector<HTMLElement>('[role=menu]')!;
+      const toggle = this.querySelector<HTMLButtonElement>('.os-actions__toggle')!;
+      const setOpen = (open: boolean) => { menu.hidden = !open; toggle.setAttribute('aria-expanded', String(open)); };
+      toggle.addEventListener('click', () => setOpen(menu.hidden));
+      document.addEventListener('click', (e) => { if (!this.contains(e.target as Node)) setOpen(false); });
+      this.addEventListener('keydown', (e) => { if (e.key === 'Escape') { setOpen(false); toggle.focus(); } });
+      for (const a of this.querySelectorAll<HTMLAnchorElement>('[data-open]')) {
+        a.href = a.dataset.open + encodeURIComponent(`Read ${mdUrl} so I can ask questions about it.`);
+      }
+      const label = this.querySelector<HTMLElement>('[data-label]')!;
+      for (const b of this.querySelectorAll<HTMLButtonElement>('[data-action=copy]')) {
+        b.addEventListener('click', async () => {
+          try {
+            const text = await (await fetch(mdUrl)).text();
+            await navigator.clipboard.writeText(text);
+            label.textContent = 'Copied';
+          } catch {
+            label.textContent = 'Copy failed';
+          }
+          this.dataset.copied = String(Date.now());
+          setOpen(false);
+          setTimeout(() => (label.textContent = 'Copy page'), 1600);
+        });
+      }
+    }
+  }
+  customElements.define('os-page-actions', PageActions);
+</script>

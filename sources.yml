@@ -1,0 +1,83 @@
+# Which repos feed the site, where each is mounted, and which of its releases
+# are published.
+#
+# Nothing is copied into this repo. The build resolves each `ref` (a tag, a
+# branch or a commit) to a commit, fetches only `path` at that commit, and
+# records the commit in build/sources.lock.json.
+#
+# Every source has its own versions, newest first. The first one is "latest".
+# `dev` (optional) is a branch built as an extra, unreleased version.
+#
+# Pages are published at /<mount>/<version>/<page>; /<mount>/latest/<page>
+# redirects to the newest release. Core is mounted at the root (/0.1.8/...).
+#
+# The format of each checkout is detected: docs/docset.yml (native),
+# docs/index.yml (Fern) or SUMMARY.md (mdBook). Old tags build as they are.
+site:
+  title: OpenShell
+  repo: pimlock/openshell-docs
+  url: https://pimlock.github.io/openshell-docs
+
+topics:
+  - id: platform
+    label: Platform
+    sources: [core]
+  - id: sdks
+    label: SDKs
+    description: Client libraries for the OpenShell gateway API.
+    intro: topics/sdks.mdx
+    sources: [sdk-python, sdk-go]
+  - id: drivers
+    label: Drivers
+    description: Compute drivers that run OpenShell sandboxes.
+    intro: topics/drivers.mdx
+    sources: [driver-docker, driver-podman]
+
+sources:
+  core:
+    title: OpenShell
+    description: The safe, private runtime for autonomous AI agents.
+    mount: ""
+    repo: NVIDIA/OpenShell
+    path: docs
+    dev: { repo: pimlock/OpenShell, ref: multirepo-docs }
+    versions:
+      - { name: "0.1.8", ref: v0.1.8 }
+      - { name: "0.1.7", ref: v0.1.7 }
+
+  sdk-python:
+    mount: sdks/python
+    repo: pimlock/openshell-sdk-python
+    path: docs
+    dev: { ref: main }
+    versions:
+      # Stands in for the first sdk-python release that ships docs.
+      - { name: "0.1.8", ref: v0.1.8-docs }
+
+  sdk-go:
+    title: Go SDK
+    description: Go client for services and command-line tools.
+    mount: sdks/go
+    repo: pimlock/openshell-sdk-go
+    path: docs/src
+    dev: { ref: main }
+    versions:
+      - { name: "0.1.8", ref: v0.1.8 }
+      - { name: "0.1.7", ref: v0.1.7 }
+
+  driver-docker:
+    mount: drivers/docker
+    repo: pimlock/openshell-driver-docker
+    path: docs
+    dev: { ref: main }
+    versions:
+      - { name: "0.2.0", ref: v0.2.0 }
+      - { name: "0.1.0", ref: v0.1.0 }
+
+  driver-podman:
+    mount: drivers/podman
+    repo: pimlock/openshell-driver-podman
+    path: docs
+    dev: { ref: main }
+    versions:
+      - { name: "0.1.0", ref: v0.1.0 }
