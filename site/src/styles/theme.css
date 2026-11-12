@@ -217,6 +217,16 @@ body {
   color: var(--os-muted);
 }
 .sidebar-content ul ul { border-inline-start-color: var(--os-border); }
+/* Nested groups read like the links around them: sentence case, link size. */
+.sidebar-content ul ul details > summary { padding-inline-start: 0.625rem; }
+.sidebar-content ul ul details > summary .large {
+  font-size: 0.875rem;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 400;
+  color: var(--os-muted);
+}
+.sidebar-content ul ul details > summary:hover .large { color: var(--os-fg); }
 
 /* ---------- content column ---------- */
 .content-panel { border-top-color: var(--os-border); }

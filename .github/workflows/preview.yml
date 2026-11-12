@@ -5,13 +5,17 @@
 # links into them are checked and point at the live site, and pages that
 # they link to must survive the change (or be listed under `redirects:`).
 #
-# The preview is published to the calling repo's GitHub Pages site, so the
-# pull request shows a "View deployment" link. One preview per repo at a time.
+# Each pull request gets its own preview in the calling repo's gh-pages
+# branch (https://<owner>.github.io/<repo>/pr-<n>/), so previews don't
+# replace each other, and one comment that is updated on every run. Closing
+# the pull request removes its preview.
 #
+# The calling repo serves GitHub Pages from the gh-pages branch.
 # Caller (in the source repo, .github/workflows/docs-preview.yml):
 #
 #   on:
 #     pull_request:
+#       types: [opened, synchronize, reopened, closed]
 #       paths: [docs/**]
 #   jobs:
 #     docs:
@@ -19,9 +23,8 @@
 #       with:
 #         docset: driver-docker
 #       permissions:
-#         contents: read
-#         pages: write
-#         id-token: write
+#         contents: write
+#         pull-requests: write
 name: Docs preview
 
 on:
@@ -36,20 +39,36 @@ on:
         required: false
         type: string
         default: https://pimlock.github.io/openshell-docs
-      deploy:
-        description: Publish the preview to the calling repo's GitHub Pages
-        required: false
-        type: boolean
-        default: true
 
 jobs:
-  build:
+  preview:
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
+      pull-requests: write
+    concurrency:
+      group: docs-preview-${{ github.repository }}-${{ github.event.pull_request.number || github.ref_name }}
+      cancel-in-progress: true
     env:
-      BASE_PATH: /${{ github.event.repository.name }}/
+      GH_TOKEN: ${{ github.token }}
+      PR: ${{ github.event.pull_request.number }}
+      SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      DOCSET: ${{ inputs.docset }}
+      SITE: ${{ inputs.site }}
     steps:
+      - name: Choose the preview folder
+        env:
+          OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [ -n "$PR" ]; then SLOT="pr-$PR"; else SLOT="ref-${REF_NAME//[^A-Za-z0-9._-]/-}"; fi
+          {
+            echo "SLOT=$SLOT"
+            echo "BASE_PATH=/$REPO_NAME/$SLOT/"
+            echo "PREVIEW_URL=https://${OWNER,,}.github.io/$REPO_NAME/$SLOT/"
+          } >> "$GITHUB_ENV"
       - name: Check out the pull request
         uses: actions/checkout@v4
         with:
@@ -59,6 +78,11 @@ jobs:
         with:
           repository: pimlock/openshell-docs
           path: docs-site
+      - name: Comment that the preview is building
+        if: env.PR != ''
+        run: |
+          printf '**Docs preview** for `%s`: building %s…\n' "$DOCSET" "${SHA::7}" > "$RUNNER_TEMP/comment.md"
+          docs-site/scripts/preview/comment.sh "$RUNNER_TEMP/comment.md"
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -68,42 +92,68 @@ jobs:
         working-directory: docs-site
       - name: Assemble this docset against the published link index
         working-directory: docs-site
-        env:
-          DOCSET: ${{ inputs.docset }}
-          SITE: ${{ inputs.site }}
-          PR: ${{ github.event.pull_request.number }}
-          SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
+          set -o pipefail
           REF="${SHA::7}"
           if [ -n "$PR" ]; then REF="PR #$PR, $REF"; fi
           node assembler/assemble.mjs --preview "$DOCSET" --path ../source \
             --index "$SITE/links.json" --site "$SITE" --ref "$REF" \
-            --base "$BASE_PATH" --out build/preview
+            --base "$BASE_PATH" --out build/preview 2>&1 | tee "$RUNNER_TEMP/assemble.log"
       - name: Build
         working-directory: docs-site
         run: npm run site
         env:
           ASSEMBLED: build/preview
           SITE_URL: https://${{ github.repository_owner }}.github.io
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: docs-site/site/dist
+      - name: Publish to gh-pages/${{ env.SLOT }}
+        run: docs-site/scripts/preview/pages.sh publish "$SLOT" docs-site/site/dist
+      - name: Comment with the preview link
+        if: env.PR != ''
+        run: |
+          {
+            printf '**Docs preview** for `%s` at %s: %s\n\n' "$DOCSET" "${SHA::7}" "$PREVIEW_URL"
+            echo "Only this repo's docs are built; links to other docs open the [live site]($SITE/). GitHub Pages can take a minute to update."
+          } > "$RUNNER_TEMP/comment.md"
+          docs-site/scripts/preview/comment.sh "$RUNNER_TEMP/comment.md"
+      - name: Comment that the preview failed
+        if: failure() && env.PR != ''
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          {
+            printf '**Docs preview** for `%s` at %s failed. [Workflow run](%s)\n' "$DOCSET" "${SHA::7}" "$RUN_URL"
+            if grep -q 'error(s):' "$RUNNER_TEMP/assemble.log" 2>/dev/null; then
+              printf '\n```\n'
+              sed -n '/error(s):/,$p' "$RUNNER_TEMP/assemble.log" | head -40
+              printf '```\n'
+            fi
+          } > "$RUNNER_TEMP/comment.md"
+          docs-site/scripts/preview/comment.sh "$RUNNER_TEMP/comment.md"
+      - name: Summary
+        if: success()
+        run: echo "Preview of $DOCSET at $PREVIEW_URL" >> "$GITHUB_STEP_SUMMARY"
 
-  deploy:
-    if: inputs.deploy
-    needs: build
+  remove:
+    if: github.event.action == 'closed'
     runs-on: ubuntu-latest
     permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
+      contents: write
+      pull-requests: write
+    concurrency:
+      group: docs-preview-${{ github.repository }}-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR: ${{ github.event.pull_request.number }}
     steps:
-      - id: deploy
-        uses: actions/deploy-pages@v4
-      - name: Summary
-        run: echo "Preview of ${DOCSET} at ${URL}" >> "$GITHUB_STEP_SUMMARY"
-        env:
-          DOCSET: ${{ inputs.docset }}
-          URL: ${{ steps.deploy.outputs.page_url }}
+      - uses: actions/checkout@v4
+        with:
+          repository: pimlock/openshell-docs
+          path: docs-site
+          sparse-checkout: scripts/preview
+      - name: Remove gh-pages/pr-${{ env.PR }}
+        run: docs-site/scripts/preview/pages.sh remove "pr-$PR"
+      - name: Update the comment
+        run: |
+          echo "**Docs preview** removed: the pull request is closed." > "$RUNNER_TEMP/comment.md"
+          docs-site/scripts/preview/comment.sh "$RUNNER_TEMP/comment.md"
