@@ -75,6 +75,11 @@ The preview:
   disappears, unless `docset.yml` lists the old page under `redirects:`;
 - is deployed to the source repo's own GitHub Pages site, linked from the PR.
 
+Two demo PRs show both outcomes:
+
+- [driver-docker#1](https://github.com/pimlock/openshell-driver-docker/pull/1) adds a section with a `core://` link. The preview passes and deploys to <https://pimlock.github.io/openshell-driver-docker/>.
+- [driver-docker#2](https://github.com/pimlock/openshell-driver-docker/pull/2) renames `setup` to `install`. It fails, because OpenShell core, the Podman driver and the Drivers overview link to `driver-docker://setup`.
+
 ## Fetching from tags instead of copying
 
 The current OpenShell docs flow copies content at release time. Here nothing
