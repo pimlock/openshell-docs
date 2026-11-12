@@ -84,6 +84,28 @@ The preview:
 A source repo needs the caller workflow and GitHub Pages served from its
 `gh-pages` branch.
 
+### Experimental: diff view (`docs-diff` label)
+
+With the `docs-diff` label on a PR, the preview job also builds a copy at
+`pr-<n>/diff/` that marks what the PR changed, compared with the base branch:
+
+- added or changed blocks (paragraphs, headings, lists, code blocks,
+  components) are highlighted, and removed ones are shown struck through;
+- "changed" and "new" badges in the sidebar, and removed pages in the banner;
+- the PR comment links the diff view and each changed page.
+
+It's built to be judged and easily dropped:
+
+- **Code:** about 220 lines. Most of it is [`assembler/diff.mjs`](assembler/diff.mjs); the rest is the workflow steps, a 15-line comment script, and a few lines of CSS, sidebar and banner. Removing it means deleting `diff.mjs` and its call, and the label steps in the workflow.
+- **Cost:** 3 to 4 s per run, only when the label is set. It never fails the preview.
+- **Limits:**
+  - A block is the smallest unit, so a one-word edit marks the whole paragraph, and a change to one list item marks the whole list.
+  - Changes to a component's attributes, or inside a tab that isn't selected, are easy to miss.
+  - Title and description changes aren't marked.
+
+[driver-docker#1](https://github.com/pimlock/openshell-driver-docker/pull/1)
+has the label: <https://pimlock.github.io/openshell-driver-docker/pr-1/diff/drivers/docker/dev/setup/>.
+
 Demo PRs:
 
 - [driver-docker#1](https://github.com/pimlock/openshell-driver-docker/pull/1) and [#3](https://github.com/pimlock/openshell-driver-docker/pull/3) pass, and their previews are live together at <https://pimlock.github.io/openshell-driver-docker/pr-1/> and [`/pr-3/`](https://pimlock.github.io/openshell-driver-docker/pr-3/).
