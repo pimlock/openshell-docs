@@ -529,8 +529,9 @@ html:has(.os-subtabs) { --sl-nav-height: calc(var(--os-header-h) + var(--os-tabs
 /* ---------- diff previews (experimental, see assembler/diff.mjs) ---------- */
 .sl-markdown-content .os-diff { border-inline-start: 3px solid; padding-inline-start: 0.85rem; margin-inline-start: -1rem; border-radius: 2px; }
 .sl-markdown-content .os-diff--added { border-color: #3fa33a; background: color-mix(in srgb, #3fa33a 8%, transparent); }
-.sl-markdown-content .os-diff--removed { border-color: #d0443e; background: color-mix(in srgb, #d0443e 7%, transparent); opacity: 0.7; text-decoration: line-through; text-decoration-color: color-mix(in srgb, #d0443e 60%, transparent); }
-.sl-markdown-content .os-diff--removed pre, .sl-markdown-content .os-diff--removed code { text-decoration: none; }
+.sl-markdown-content .os-diff--removed { border-color: #d0443e; background: color-mix(in srgb, #d0443e 7%, transparent); opacity: 0.7; }
+/* strike prose only: a line-through can't be undone inside, so code stays readable */
+.sl-markdown-content .os-diff--removed :is(p, li, td, th, h1, h2, h3, h4) { text-decoration: line-through; text-decoration-color: color-mix(in srgb, #d0443e 60%, transparent); }
 .os-diff-key { padding: 0 0.35rem; border-inline-start: 3px solid; }
 .os-diff-key--added { border-color: #3fa33a; background: color-mix(in srgb, #3fa33a 15%, transparent); }
 .os-diff-key--removed { border-color: #d0443e; background: color-mix(in srgb, #d0443e 15%, transparent); text-decoration: line-through; }

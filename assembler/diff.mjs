@@ -69,6 +69,18 @@ function diffBlocks(head, hsrc, base, bsrc) {
       }
     }
   }
+  // Show each removed block right above the block that replaced it: within a
+  // run of changes, interleave removals and additions in order.
+  const ordered = [];
+  for (let k = 0; k < ops.length; ) {
+    if (ops[k].op === "same" || ops[k].op === "nest") { ordered.push(ops[k++]); continue; }
+    const run = [];
+    while (k < ops.length && ops[k].op !== "same" && ops[k].op !== "nest") run.push(ops[k++]);
+    const dels = run.filter((o) => o.op === "del");
+    const adds = run.filter((o) => o.op === "add");
+    for (let x = 0; x < Math.max(dels.length, adds.length); x++) ordered.push(...[dels[x], adds[x]].filter(Boolean));
+  }
+  ops.splice(0, ops.length, ...ordered);
   const changed = ops.some((o) => o.op !== "same");
   const out = ops.map((o) => (o.op === "add" ? wrap("added", o.text) : o.op === "del" ? wrap("removed", removed(o.text)) : o.text));
   return [out.join("\n\n"), changed];

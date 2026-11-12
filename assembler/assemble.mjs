@@ -373,6 +373,7 @@ const navItems = (items, rel) =>
 const versionEntry = (rel) => ({
   name: rel.version, ref: rel.ref, sha: rel.sha, prefix: rel.prefix, latest: !!rel.latest, dev: !!rel.dev,
   first: firstOf(rel),
+  redirects: rel.redirects,
   pages: rel.remote ? Object.keys(rel.pageInfo) : rel.pages.map((p) => p.key),
   items: rel.remote ? [] : navItems(rel.nav, rel),
   ...(rel.remote ? { remote: true } : {}),
@@ -587,7 +588,7 @@ writeFile(
         hostIds.map((id) => {
           const d = docsets[id];
           const vs = d.versions.filter((v) => !v.remote);
-          return [id, { mount: d.mount, latest: PREVIEW ? vs[0].name : d.latest, versions: vs.map((v) => ({ name: v.name, prefix: v.prefix, first: v.first, pages: v.pages })) }];
+          return [id, { mount: d.mount, latest: PREVIEW ? vs[0].name : d.latest, versions: vs.map((v) => ({ name: v.name, prefix: v.prefix, first: v.first, pages: v.pages, redirects: v.redirects })) }];
         }),
       ),
     },

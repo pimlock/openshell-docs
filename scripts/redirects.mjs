@@ -5,6 +5,8 @@
 //   /<mount>/              -> the docset's latest release
 //   /<mount>/latest/<page> -> /<mount>/<latest>/<page>
 //   /<mount>/<version>/    -> that version's first page, when it has no home page
+//   /<prefix>/<old page>   -> /<prefix>/<new page>, from `redirects:` in docset.yml
+//                             (and Fern section URLs without an overview page)
 // Existing pages are never overwritten. A production host would use edge
 // rules instead (and could also negotiate Markdown).
 // Usage: node scripts/redirects.mjs site/dist
@@ -36,6 +38,9 @@ for (const d of Object.values(docsets)) {
   if (d.mount) redirect(d.mount, href(latest.first));
   redirect(join(d.mount, "latest"), href(latest.pages.includes("") ? latest.prefix : latest.first));
   for (const key of latest.pages) if (key) redirect(join(d.mount, "latest", key), href(join(latest.prefix, key)));
-  for (const v of d.versions) if (!v.pages.includes("")) redirect(v.prefix, href(v.first));
+  for (const v of d.versions) {
+    if (!v.pages.includes("")) redirect(v.prefix, href(v.first));
+    for (const [from, to] of Object.entries(v.redirects ?? {})) redirect(join(v.prefix, from), href(join(v.prefix, to)));
+  }
 }
 console.log(`wrote ${written} redirect pages`);
