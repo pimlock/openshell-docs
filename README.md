@@ -72,7 +72,8 @@ The preview:
 
 - checks outbound links against the index and points them at the live site;
 - fails if a page or heading that another repo (or a topic intro) links to
-  disappears, unless `docset.yml` lists the old page under `redirects:`;
+  disappears, unless `docset.yml` lists the old page under `redirects:`
+  (the old URL then redirects to the new page);
 - is published to the source repo's `gh-pages` branch under `pr-<n>/`, so every
   open PR has its own preview at the same time;
 - shows only the header ("OpenShell Docker Driver"), this docset's sidebar and
@@ -105,6 +106,9 @@ It's built to be judged and easily dropped:
 
 [driver-docker#1](https://github.com/pimlock/openshell-driver-docker/pull/1)
 has the label: <https://pimlock.github.io/openshell-driver-docker/pr-1/diff/drivers/docker/dev/setup/>.
+[driver-docker#4](https://github.com/pimlock/openshell-driver-docker/pull/4) is a
+larger restructuring (lists, components, a table row, a new page, a removed page):
+<https://pimlock.github.io/openshell-driver-docker/pr-4/diff/drivers/docker/dev/setup/>.
 
 Demo PRs:
 
