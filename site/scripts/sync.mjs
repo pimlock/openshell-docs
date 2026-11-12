@@ -52,8 +52,7 @@ for (const file of fs.readdirSync(docsDir, { recursive: true })) {
     const pv = nav.preview;
     banner = `Preview of ${pv.repo} (${pv.ref}). Only ${d.title} is built here; links to other docs open the <a href="${nav.site}/">live site</a>.`;
   } else if (page.dev && !page.latest) {
-    const v = d.versions.find((x) => x.name === page.version);
-    banner = `Unreleased docs from ${d.repo}@${v.ref}. <a href="${latestHref(page)}">Go to the latest release (${d.latest})</a>.`;
+    banner = `These docs are for the development version. <a href="${latestHref(page)}">Go to the latest released version (${d.latest})</a>.`;
   } else if (page.source && !page.latest) {
     banner = `You are viewing ${d.title} ${page.version}. The latest version is ${d.latest}. <a href="${latestHref(page)}">Go to the latest version</a>.`;
   }

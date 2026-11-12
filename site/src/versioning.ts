@@ -78,13 +78,15 @@ export function docsetsFor(page: Page) {
  */
 export function sidebarFor(page: Page) {
   if (!page.source) return [];
-  const toEntry = (it: NavItem | NavLink): any =>
+  // Top-level groups start open, nested ones collapsed; Starlight opens any
+  // group that contains the current page.
+  const toEntry = (it: NavItem | NavLink, depth = 0): any =>
     it.type === 'group'
-      ? { type: 'group', label: it.label, entries: it.items.map(toEntry), collapsed: false, badge: undefined }
+      ? { type: 'group', label: it.label, entries: it.items.map((x) => toEntry(x, depth + 1)), collapsed: depth > 0, badge: undefined }
       : it.type === 'link'
         ? { type: 'link', label: it.label, href: it.href, isCurrent: false, badge: undefined, attrs: {} }
         : { type: 'link', label: it.label, href: href(it.slug), isCurrent: it.slug === page.slug, badge: undefined, attrs: {} };
-  return release(page.source, page.version!).items.map(toEntry);
+  return release(page.source, page.version!).items.map((it) => toEntry(it));
 }
 
 /** Versions of the current docset; each option keeps the same page when that version has it. */

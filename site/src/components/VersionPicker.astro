@@ -17,7 +17,7 @@ const picker = (Astro.locals as any).osVersion?.picker;
       {picker.options.map((o: any) => (
         <li>
           <a href={o.href} aria-current={o.current ? 'true' : undefined}>
-            <span class="os-version__name">{o.name}{o.latest && <span class="os-version__latest">latest</span>}{o.preview && <span class="os-version__latest">preview</span>}{o.dev && <span class="os-version__latest">unreleased</span>}{o.remote && <span aria-label="live site">↗</span>}</span>
+            <span class="os-version__name">{o.name}{o.latest && <span class="os-version__latest">latest</span>}{o.preview && <span class="os-version__latest">preview</span>}{o.remote && <span aria-label="live site">↗</span>}</span>
             {!o.samePage && <span class="os-version__hint">Page not in this version; opens its first page</span>}
           </a>
         </li>

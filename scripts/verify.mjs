@@ -24,7 +24,7 @@ const shot = (n) => page.screenshot({ path: path.join(shots, n + ".png") });
 
 await go("/");
 check("/ redirects to the newest OpenShell release", page.url().endsWith(`${B}/0.1.8/`), page.url());
-check("core picker: dev, 0.1.8 (latest), 0.1.7", JSON.stringify(await picker()) === JSON.stringify(["devunreleased", "0.1.8latest", "0.1.7"]), await picker());
+check("core picker: dev, 0.1.8 (latest), 0.1.7", JSON.stringify(await picker()) === JSON.stringify(["dev", "0.1.8latest", "0.1.7"]), await picker());
 check("core sidebar has Fern sections", (await page.$$eval("#starlight__sidebar summary", (s) => s.map((x) => x.textContent.trim()))).includes("How It Works"));
 await shot("core-latest");
 
@@ -34,7 +34,7 @@ check("images from the tag load", imgs.length > 0 && imgs.every(([, w]) => w > 0
 
 await go("/dev/how-it-works/sandboxes/runtimes/");
 check("core dev links the Docker driver's dev docs", (await links()).includes(`${B}/drivers/docker/dev/setup/`), (await links()).filter((h) => h?.includes("drivers")));
-check("dev pages carry the unreleased banner", (await page.textContent(".sl-banner"))?.includes("Unreleased docs from pimlock/OpenShell@multirepo-docs"));
+check("dev pages carry the unreleased banner", (await page.textContent(".sl-banner"))?.includes("These docs are for the development version"));
 await shot("core-dev-runtimes");
 
 await go("/0.1.8/how-it-works/gateways/configuration/");
@@ -48,7 +48,7 @@ await shot("python-latest");
 await go("/sdks/go/0.1.7/getting-started/");
 check("Go 0.1.7 (mdBook tag) renders", (await page.textContent("h1"))?.includes("Quick Start"));
 check("Go 0.1.7 has outdated banner", (await page.textContent(".sl-banner"))?.includes("latest version is 0.1.8"));
-check("Go picker: dev, 0.1.8, 0.1.7", JSON.stringify(await picker()) === JSON.stringify(["devunreleased", "0.1.8latest", "0.1.7"]), await picker());
+check("Go picker: dev, 0.1.8, 0.1.7", JSON.stringify(await picker()) === JSON.stringify(["dev", "0.1.8latest", "0.1.7"]), await picker());
 await go("/sdks/go/dev/getting-started/");
 check("Go dev links core dev", (await links()).includes(`${B}/dev/about/installation/`));
 await shot("go-dev");

@@ -494,7 +494,7 @@ for (const page of pages) {
   const latestMd = latest.remote ? `${SITE}/${latestSlug}.md` : mdUrl(latestSlug);
   const status = PREVIEW
     ? `> Preview build of ${rel.repo} (${rel.ref}); not published. Published version (${latest.version}): ${latestMd}`
-    : rel.dev && !rel.latest ? `> Unreleased docs from ${rel.repo}@${rel.ref}. Latest release (${latest.version}): ${latestMd}`
+    : rel.dev && !rel.latest ? `> These docs are for the development version (${rel.repo}@${rel.ref}). Latest released version (${latest.version}): ${latestMd}`
       : rel.latest ? null : `> This is not the latest version. Latest (${latest.version}): ${latestMd}`;
   const header = [
     "---",
