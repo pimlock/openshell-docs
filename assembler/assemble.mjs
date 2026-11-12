@@ -24,6 +24,10 @@
 //   node assembler/assemble.mjs --preview driver-docker --path <checkout> \
 //     --index <site>/links.json --site <site url> [--ref pr-12] [--layout full] \
 //     [--branch <pr head branch> --edit-repo <owner/repo of that branch>]
+//     [--diff-base <checkout of the PR's base commit> --diff-label <name>]
+//
+// With --diff-base the preview marks what changed on each page (experimental,
+// see diff.mjs) and writes diff.json with the changed pages.
 //
 // Everything outside the previewed repo comes from the published links.json.
 // Links into other repos are checked against it and point at the live site.
@@ -52,6 +56,7 @@ import { visit } from "unist-util-visit";
 import GithubSlugger from "github-slugger";
 import { checkout } from "./fetch.mjs";
 import { join, pageKey, parseFrontmatter, read } from "./adapters.mjs";
+import { diffRelease } from "./diff.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..");
@@ -142,6 +147,11 @@ const outsideCode = (body, fn) =>
     .split(/(^[ \t]*(?:```|~~~)[^\n]*\n[\s\S]*?^[ \t]*(?:```|~~~)[ \t]*$|`[^`\n]+`)/m)
     .map((part, i) => (i % 2 ? part : fn(part)))
     .join("");
+// Fern's custom heading ids ("## Title {#id}") aren't MDX: keep the id as an anchor.
+const fernIds = (body, ids = []) =>
+  outsideCode(body, (part) =>
+    part.replace(/^(#{1,6}\s.*?)\s*\{#([\w-]+)\}\s*$/gm, (_, h, id) => (ids.push(id), `${h} <a id="${id}"></a>`)),
+  );
 // Heading ids, as Astro/Starlight generate them (github-slugger).
 function anchorsOf(body, ext) {
   const slugger = new GithubSlugger();
@@ -187,11 +197,8 @@ for (const w of wanted) {
       continue;
     }
     seen.add(p.key);
-    // Fern's custom heading ids ("## Title {#id}") aren't MDX: keep the id as an anchor
     const ids = [];
-    p.body = outsideCode(p.body, (part) =>
-      part.replace(/^(#{1,6}\s.*?)\s*\{#([\w-]+)\}\s*$/gm, (_, h, id) => (ids.push(id), `${h} <a id="${id}"></a>`)),
-    );
+    p.body = fernIds(p.body, ids);
     const page = { ...p, rel, slug: join(rel.prefix, p.key), anchors: [...anchorsOf(p.body, p.ext), ...ids] };
     page.data.title ??= p.label ?? p.key;
     pages.push(page);
@@ -212,6 +219,16 @@ if (!PREVIEW) for (const id of Object.keys(manifest.sources)) {
   if (first) first.latest = true;
 }
 const bySlug = new Map(pages.map((p) => [p.slug, p]));
+
+// Experimental diff view (preview only): mark changes against the PR's base.
+let diff = null;
+if (PREVIEW && args["diff-base"]) {
+  const w = wanted[0];
+  const problems = [];
+  diff = { base: args["diff-label"] ?? "base", ...diffRelease(releases[0], read(path.join(path.resolve(args["diff-base"]), w.subdir), problems), fernIds, problems) };
+  problems.forEach((p) => warnings.push(`diff: ${p}`));
+  console.log(`diff against ${diff.base}: ${diff.changed.length} changed, ${diff.added.length} new, ${diff.removed.length} removed`);
+}
 
 // Releases known only from the published index (preview mode): page keys,
 // titles and anchors, never content. The previewed docset's own published
@@ -410,7 +427,7 @@ const local = releases;
 const nav = {
   title: manifest.site.title,
   base: BASE,
-  ...(PREVIEW ? { site: SITE, layout: LAYOUT, preview: { docset: PREVIEW, repo: local[0]?.repo, ref: local[0]?.ref } } : {}),
+  ...(PREVIEW ? { site: SITE, layout: LAYOUT, preview: { docset: PREVIEW, repo: local[0]?.repo, ref: local[0]?.ref, ...(diff ? { diff: { base: diff.base, changed: diff.changed.length, added: diff.added.length, removed: diff.removed.map((r) => r.title) } } : {}) } } : {}),
   topics: manifest.topics.map((t) => ({ id: t.id, label: t.label, sources: t.sources, landing: landingOf(t) })),
   docsets,
 };
@@ -421,13 +438,14 @@ writeFile(
     pages
       .map((p) => ({
         slug: p.slug, file: p.outRel, title: p.data.title, source: p.rel.id, version: p.rel.version,
-        latest: !!p.rel.latest, dev: !!p.rel.dev, key: p.key, edit: editUrl(p), ...(PREVIEW ? { preview: true } : {}),
+        latest: !!p.rel.latest, dev: !!p.rel.dev, key: p.key, edit: editUrl(p), ...(p.diff ? { diff: p.diff } : {}), ...(PREVIEW ? { preview: true } : {}),
       }))
       .concat(landings.map((l) => ({ slug: l.slug, file: l.outRel, title: l.title, source: null, topic: l.topic, latest: true, key: "" }))),
     null,
     2,
   ),
 );
+if (diff) writeFile("diff.json", JSON.stringify({ ...diff, url: url(""), pages: [...diff.changed, ...diff.added].map((p) => ({ ...p, url: url(p.slug) })) }, null, 2));
 writeFile(
   "sources.lock.json",
   JSON.stringify(Object.fromEntries(local.map((r) => [r.name, { repo: r.repo, ref: r.ref, sha: r.sha, path: r.path, format: r.format }])), null, 2),

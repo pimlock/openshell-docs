@@ -10,12 +10,16 @@
 # replace each other, and one comment that is updated on every run. Closing
 # the pull request removes its preview.
 #
+# Experimental: with the `docs-diff` label on the pull request, a second build
+# marks what changed on each page (against the base branch) and is published
+# at pr-<n>/diff/. It never fails the preview.
+#
 # The calling repo serves GitHub Pages from the gh-pages branch.
 # Caller (in the source repo, .github/workflows/docs-preview.yml):
 #
 #   on:
 #     pull_request:
-#       types: [opened, synchronize, reopened, closed]
+#       types: [opened, synchronize, reopened, closed, labeled, unlabeled]
 #       paths: [docs/**]
 #   jobs:
 #     docs:
@@ -48,7 +52,10 @@ on:
 
 jobs:
   preview:
-    if: github.event.action != 'closed'
+    # (other labels don't need a rebuild)
+    if: >-
+      github.event.action != 'closed' &&
+      ((github.event.action != 'labeled' && github.event.action != 'unlabeled') || github.event.label.name == 'docs-diff')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -65,6 +72,9 @@ jobs:
       LAYOUT: ${{ inputs.layout }}
       HEAD_REF: ${{ github.head_ref || github.ref_name }}
       HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+      DIFF: ${{ contains(github.event.pull_request.labels.*.name, 'docs-diff') }}
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      BASE_REF: ${{ github.event.pull_request.base.ref }}
     steps:
       - name: Choose the preview folder
         env:
@@ -115,13 +125,50 @@ jobs:
         env:
           ASSEMBLED: build/preview
           SITE_URL: https://${{ github.repository_owner }}.github.io
+      - name: Keep the preview
+        run: cp -R docs-site/site/dist "$RUNNER_TEMP/site"
+
+      # --- experimental diff view (docs-diff label) ---
+      - name: Check out the base commit
+        if: env.DIFF == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+      - name: Build the diff view
+        id: diff
+        if: env.DIFF == 'true'
+        continue-on-error: true
+        working-directory: docs-site
+        run: |
+          start=$(date +%s)
+          node assembler/assemble.mjs --preview "$DOCSET" --path ../source \
+            --index "$SITE/links.json" --site "$SITE" --ref "PR #$PR, ${SHA::7}" \
+            --base "${BASE_PATH}diff/" --layout "$LAYOUT" --branch "$HEAD_REF" --edit-repo "$HEAD_REPO" \
+            --diff-base ../base --diff-label "$BASE_REF" --out build/preview-diff
+          ASSEMBLED=build/preview-diff BASE_PATH="${BASE_PATH}diff/" npm run site
+          cp -R site/dist "$RUNNER_TEMP/site/diff"
+          cp build/preview-diff/diff.json "$RUNNER_TEMP/diff.json"
+          echo "Diff view built in $(( $(date +%s) - start ))s" >> "$GITHUB_STEP_SUMMARY"
+        env:
+          SITE_URL: https://${{ github.repository_owner }}.github.io
+
       - name: Publish to gh-pages/${{ env.SLOT }}
-        run: docs-site/scripts/preview/pages.sh publish "$SLOT" docs-site/site/dist
+        run: docs-site/scripts/preview/pages.sh publish "$SLOT" "$RUNNER_TEMP/site"
       - name: Comment with the preview link
         if: env.PR != ''
         run: |
           {
             printf '**Docs preview** for `%s` at %s: %s\n\n' "$DOCSET" "${SHA::7}" "$PREVIEW_URL"
+            if [ "$DIFF" = true ] && [ -f "$RUNNER_TEMP/diff.json" ]; then
+              node docs-site/scripts/preview/diff-comment.mjs "$RUNNER_TEMP/diff.json" "$PREVIEW_URL"
+            elif [ "$DIFF" = true ]; then
+              echo "**Diff view** failed to build (experimental; see the workflow run)."
+              echo
+            else
+              echo "Add the \`docs-diff\` label to also build a view that marks what changed on each page."
+              echo
+            fi
             echo "Only this repo's docs are built; links to other docs open the [live site]($SITE/). GitHub Pages can take a minute to update."
           } > "$RUNNER_TEMP/comment.md"
           docs-site/scripts/preview/comment.sh "$RUNNER_TEMP/comment.md"

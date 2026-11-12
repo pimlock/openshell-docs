@@ -14,7 +14,7 @@ type Version = {
 type Docset = { title: string; description?: string; mount: string; latest: string; versions: Version[] };
 export type Page = {
   slug: string; title: string; source: string | null; version?: string; key: string; topic?: string;
-  latest?: boolean; dev?: boolean; preview?: boolean; edit?: string;
+  latest?: boolean; dev?: boolean; preview?: boolean; edit?: string; diff?: 'added' | 'changed';
 };
 
 const docsets = nav.docsets as unknown as Record<string, Docset>;
@@ -32,8 +32,11 @@ const hrefIn = (v: { remote?: boolean }, slug: string) => (v.remote ? live(slug)
 const landingHref = (slug: string) => (site ? live(slug) : href(slug));
 
 /** The docset's name for a header: "Docker driver" -> "Docker Driver". */
-export const docsetName = (page: Page) =>
-  page.source ? docsets[page.source].title.replace(/\b[a-z]/g, (c) => c.toUpperCase()) : undefined;
+export const docsetName = (page: Page) => {
+  const title = page.source ? docsets[page.source].title : '';
+  // core is titled "OpenShell" already
+  return title && !title.startsWith('OpenShell') ? title.replace(/\b[a-z]/g, (c) => c.toUpperCase()) : undefined;
+};
 
 export function pageFor(id: string): Page | undefined {
   return bySlug.get(id.replace(/^\/|\/$/g, ''));
@@ -82,6 +85,12 @@ export function docsetsFor(page: Page) {
  * docsets are reached through the sub-tabs, and topic overview pages have no
  * sidebar (splash template, set by sync.mjs).
  */
+// Diff previews mark changed pages in the sidebar.
+const diffBadge = (slug: string) => {
+  const d = bySlug.get(slug)?.diff;
+  return d ? { text: d === 'added' ? 'new' : 'changed', variant: d === 'added' ? 'success' : 'caution' } : undefined;
+};
+
 export function sidebarFor(page: Page) {
   if (!page.source) return [];
   // Top-level groups start open, nested ones collapsed; Starlight opens any
@@ -91,7 +100,7 @@ export function sidebarFor(page: Page) {
       ? { type: 'group', label: it.label, entries: it.items.map((x) => toEntry(x, depth + 1)), collapsed: depth > 0, badge: undefined }
       : it.type === 'link'
         ? { type: 'link', label: it.label, href: it.href, isCurrent: false, badge: undefined, attrs: {} }
-        : { type: 'link', label: it.label, href: href(it.slug), isCurrent: it.slug === page.slug, badge: undefined, attrs: {} };
+        : { type: 'link', label: it.label, href: href(it.slug), isCurrent: it.slug === page.slug, badge: diffBadge(it.slug), attrs: {} };
   return release(page.source, page.version!).items.map((it) => toEntry(it));
 }
 
