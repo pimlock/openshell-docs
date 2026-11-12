@@ -73,11 +73,17 @@ The preview:
 - checks outbound links against the index and points them at the live site;
 - fails if a page or heading that another repo (or a topic intro) links to
   disappears, unless `docset.yml` lists the old page under `redirects:`;
-- is deployed to the source repo's own GitHub Pages site, linked from the PR.
+- is published to the source repo's `gh-pages` branch under `pr-<n>/`, so every
+  open PR has its own preview at the same time;
+- posts one comment on the PR, updated on every run: the link, or the errors
+  if the check fails. Closing the PR removes its preview.
 
-Two demo PRs show both outcomes:
+A source repo needs the caller workflow and GitHub Pages served from its
+`gh-pages` branch.
 
-- [driver-docker#1](https://github.com/pimlock/openshell-driver-docker/pull/1) adds a section with a `core://` link. The preview passes and deploys to <https://pimlock.github.io/openshell-driver-docker/>.
+Demo PRs:
+
+- [driver-docker#1](https://github.com/pimlock/openshell-driver-docker/pull/1) and [#3](https://github.com/pimlock/openshell-driver-docker/pull/3) pass, and their previews are live together at <https://pimlock.github.io/openshell-driver-docker/pr-1/> and [`/pr-3/`](https://pimlock.github.io/openshell-driver-docker/pr-3/).
 - [driver-docker#2](https://github.com/pimlock/openshell-driver-docker/pull/2) renames `setup` to `install`. It fails, because OpenShell core, the Podman driver and the Drivers overview link to `driver-docker://setup`.
 
 ## Fetching from tags instead of copying
@@ -136,5 +142,5 @@ checks against a running site (needs `playwright-core`).
 
 - Search covers latest releases only (Pagefind could filter by version).
 - Redirects are static HTML pages, because GitHub Pages has no edge rules. A real host would use edge rules, and could serve Markdown by content negotiation.
-- Only one preview per source repo at a time (GitHub Pages has one site per repo).
+- Previews of PRs from forks can't publish or comment, because their token is read-only. That would need a `pull_request_target` or `workflow_run` split.
 - No automatic version discovery from tags.
