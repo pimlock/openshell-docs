@@ -22,7 +22,7 @@
 //
 // Preview build (one repo, no access to the others):
 //   node assembler/assemble.mjs --preview driver-docker --path <checkout> \
-//     --index <site>/links.json --site <site url> [--ref pr-12]
+//     --index <site>/links.json --site <site url> [--ref pr-12] [--layout fragment]
 //
 // Everything outside the previewed repo comes from the published links.json.
 // Links into other repos are checked against it and point at the live site.
@@ -68,6 +68,10 @@ for (let i = 0; i < argv.length; i++) {
   i++;
 }
 const PREVIEW = args.preview;
+// Preview layout: "full" (the site's tabs, sub-tabs and version picker, linking
+// to the live site) or "fragment" (header, this docset's sidebar and content).
+const LAYOUT = args.layout ?? "full";
+if (!["full", "fragment"].includes(LAYOUT)) throw new Error(`--layout must be full or fragment`);
 const out = path.resolve(args.out ?? path.join(root, "build", PREVIEW ? "preview" : "assembled"));
 const cache = path.resolve(args.cache ?? path.join(root, ".cache/sources"));
 const BASE = ("/" + (args.base ?? process.env.BASE_PATH ?? "/") + "/").replace(/\/+/g, "/");
@@ -392,7 +396,7 @@ const local = releases;
 const nav = {
   title: manifest.site.title,
   base: BASE,
-  ...(PREVIEW ? { site: SITE, preview: { docset: PREVIEW, repo: local[0]?.repo, ref: local[0]?.ref } } : {}),
+  ...(PREVIEW ? { site: SITE, layout: LAYOUT, preview: { docset: PREVIEW, repo: local[0]?.repo, ref: local[0]?.ref } } : {}),
   topics: manifest.topics.map((t) => ({ id: t.id, label: t.label, sources: t.sources, landing: landingOf(t) })),
   docsets,
 };

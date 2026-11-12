@@ -21,6 +21,8 @@ const docsets = nav.docsets as unknown as Record<string, Docset>;
 const topics = nav.topics as unknown as { id: string; label: string; sources: string[]; landing?: string }[];
 const bySlug = new Map((pages as unknown as Page[]).map((p) => [p.slug, p]));
 const base: string = (nav as any).base ?? '/';
+/** "fragment" previews show only the header, this docset's sidebar and the content. */
+export const layout: 'full' | 'fragment' = (nav as any).layout ?? 'full';
 export const href = (slug: string) => base + (slug ? slug + '/' : '');
 // In a preview build, releases from other repos (and the topic landing pages)
 // are known only from the published link index and live on the live site.

@@ -22,6 +22,7 @@
 #       uses: pimlock/openshell-docs/.github/workflows/preview.yml@main
 #       with:
 #         docset: driver-docker
+#         layout: fragment        # optional; default full
 #       permissions:
 #         contents: write
 #         pull-requests: write
@@ -39,6 +40,11 @@ on:
         required: false
         type: string
         default: https://pimlock.github.io/openshell-docs
+      layout:
+        description: "full: the site's tabs and version picker (linking to the live site); fragment: header, this docset's sidebar and content only"
+        required: false
+        type: string
+        default: full
 
 jobs:
   preview:
@@ -56,6 +62,7 @@ jobs:
       SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       DOCSET: ${{ inputs.docset }}
       SITE: ${{ inputs.site }}
+      LAYOUT: ${{ inputs.layout }}
     steps:
       - name: Choose the preview folder
         env:
@@ -98,7 +105,7 @@ jobs:
           if [ -n "$PR" ]; then REF="PR #$PR, $REF"; fi
           node assembler/assemble.mjs --preview "$DOCSET" --path ../source \
             --index "$SITE/links.json" --site "$SITE" --ref "$REF" \
-            --base "$BASE_PATH" --out build/preview 2>&1 | tee "$RUNNER_TEMP/assemble.log"
+            --base "$BASE_PATH" --layout "$LAYOUT" --out build/preview 2>&1 | tee "$RUNNER_TEMP/assemble.log"
       - name: Build
         working-directory: docs-site
         run: npm run site

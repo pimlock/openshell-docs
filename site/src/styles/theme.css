@@ -479,6 +479,7 @@ a.os-card:hover .os-card__arrow { color: var(--os-accent-text); transform: trans
 
 /* ---------- sub-tabs: topic overview + one per docset ---------- */
 :root { --os-subtabs-h: 2.75rem; }
+html:has(.os-header--fragment) { --sl-nav-height: var(--os-header-h); }
 html:has(.os-subtabs) { --sl-nav-height: calc(var(--os-header-h) + var(--os-tabs-h) + var(--os-subtabs-h)); }
 .os-subtabs {
   position: relative;

@@ -8,6 +8,7 @@ import ThemeSelect from 'virtual:starlight/components/ThemeSelect';
 import SocialIcons from 'virtual:starlight/components/SocialIcons';
 
 const topics = (Astro.locals as any).osVersion?.topics ?? [];
+const fragment = !!(Astro.locals as any).osVersion?.fragment;
 const ds = (Astro.locals as any).osVersion?.docsets;
 const subtabs = ds
   ? [
@@ -19,7 +20,7 @@ const subtabs = ds
   : [];
 ---
 
-<div class="os-header">
+<div class:list={['os-header', { 'os-header--fragment': fragment }]}>
   <div class="os-header__row">
     <a href={import.meta.env.BASE_URL} class="os-wordmark" translate="no">
       <svg viewBox="0 0 24 24" aria-hidden="true" class="os-wordmark__mark"><rect width="24" height="24" rx="5" fill="#76b900"/><path d="M7 8.5 11 12l-4 3.5M12.5 16H17" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -31,11 +32,13 @@ const subtabs = ds
       <div class="sl-hidden md:sl-flex"><ThemeSelect /></div>
     </div>
   </div>
-  <nav class="os-tabs print:hidden" aria-label="Topics">
-    {topics.map((t: any) => (
-      <a href={t.href} class="os-tab" aria-current={t.isCurrent ? 'true' : undefined}>{t.label}</a>
-    ))}
-  </nav>
+  {!fragment && (
+    <nav class="os-tabs print:hidden" aria-label="Topics">
+      {topics.map((t: any) => (
+        <a href={t.href} class="os-tab" aria-current={t.isCurrent ? 'true' : undefined}>{t.label}</a>
+      ))}
+    </nav>
+  )}
   {ds && ds.items.length > 1 && (
     <div class="os-subtabs print:hidden">
       <nav class="os-subtabs__links" aria-label={ds.topic.label}>
