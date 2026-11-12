@@ -97,7 +97,7 @@ export function pickerFor(page: Page) {
     options: d.versions.map((v) => ({
       name: v.name,
       latest: v.name === d.latest,
-      dev: !!v.dev && v.name !== d.latest,
+      dev: !!v.dev && !v.preview && v.name !== d.latest,
       preview: !!v.preview,
       current: v.name === page.version,
       href: hrefIn(v, v.pages.includes(page.key) ? [v.prefix, page.key].filter(Boolean).join('/') : v.first),

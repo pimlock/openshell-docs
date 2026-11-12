@@ -72,6 +72,8 @@ const out = path.resolve(args.out ?? path.join(root, "build", PREVIEW ? "preview
 const cache = path.resolve(args.cache ?? path.join(root, ".cache/sources"));
 const BASE = ("/" + (args.base ?? process.env.BASE_PATH ?? "/") + "/").replace(/\/+/g, "/");
 const url = (slug, hash = "") => `${BASE}${slug ? slug + "/" : ""}${hash}`;
+// a page on the live site (preview builds link there for other repos)
+const liveUrl = (slug, hash = "") => `${SITE}/${slug ? slug + "/" : ""}${hash}`;
 const errors = [];
 const warnings = [];
 fs.rmSync(out, { recursive: true, force: true });
@@ -197,8 +199,9 @@ for (const w of wanted) {
   releases.push(rel);
   releasesOf[w.id].push(rel);
 }
-// latest = the newest release; a docset with only a dev version uses dev
-for (const id of Object.keys(manifest.sources)) {
+// latest = the newest release; a docset with only a dev version uses dev.
+// (A preview is never latest: the published index says which release is.)
+if (!PREVIEW) for (const id of Object.keys(manifest.sources)) {
   const first = releasesOf[id].find((r) => !r.dev) ?? releasesOf[id][0];
   if (first) first.latest = true;
 }
@@ -242,21 +245,21 @@ function firstOf(rel) {
 }
 function checked(slug, anchor, original, page, rel) {
   const t = target(slug);
-  const base = rel.remote ? SITE : "";
+  const link = rel.remote ? liveUrl : url;
   const soft = !strict(page.rel);
   if (!t) {
     const msg = `${page.relPath}: broken link "${original}" -> /${slug}`;
     if (!soft) return errors.push(`${page.rel.name}: ${msg}`), original;
     warnings.push(`${page.rel.name}: ${msg}; using the first page of ${rel.name}`);
-    return base + url(firstOf(rel));
+    return link(firstOf(rel));
   }
   if (anchor && !t.anchors.includes(anchor)) {
     const msg = `${page.relPath}: missing heading "${original}" -> /${slug}#${anchor}`;
     if (!soft) errors.push(`${page.rel.name}: ${msg}`);
     else warnings.push(`${page.rel.name}: ${msg}; linking the page`);
-    return base + url(slug);
+    return link(slug);
   }
-  return base + url(slug, anchor ? `#${anchor}` : "");
+  return link(slug, anchor ? `#${anchor}` : "");
 }
 function resolveLink(raw, page) {
   if (/^(https?:|mailto:|tel:|data:|#|\/\/)/i.test(raw)) return raw;
@@ -488,7 +491,7 @@ for (const page of pages) {
   const latest = latestOf(rel.id);
   const latestEntry = docsets[rel.id].versions.find((v) => v.name === latest.version);
   const latestSlug = latestEntry.pages.includes(page.key) ? join(latest.prefix, page.key) : latestEntry.first;
-  const latestMd = (latest.remote ? SITE : "") + mdUrl(latestSlug);
+  const latestMd = latest.remote ? `${SITE}/${latestSlug}.md` : mdUrl(latestSlug);
   const status = PREVIEW
     ? `> Preview build of ${rel.repo} (${rel.ref}); not published. Published version (${latest.version}): ${latestMd}`
     : rel.dev && !rel.latest ? `> Unreleased docs from ${rel.repo}@${rel.ref}. Latest release (${latest.version}): ${latestMd}`

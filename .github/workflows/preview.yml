@@ -68,11 +68,17 @@ jobs:
         working-directory: docs-site
       - name: Assemble this docset against the published link index
         working-directory: docs-site
-        run: >
-          node assembler/assemble.mjs --preview "${{ inputs.docset }}" --path ../source
-          --index "${{ inputs.site }}/links.json" --site "${{ inputs.site }}"
-          --ref "${{ github.event.pull_request && format('PR #{0} ({1})', github.event.pull_request.number, github.event.pull_request.head.sha) || github.sha }}"
-          --base "$BASE_PATH" --out build/preview
+        env:
+          DOCSET: ${{ inputs.docset }}
+          SITE: ${{ inputs.site }}
+          PR: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          REF="${SHA::7}"
+          if [ -n "$PR" ]; then REF="PR #$PR, $REF"; fi
+          node assembler/assemble.mjs --preview "$DOCSET" --path ../source \
+            --index "$SITE/links.json" --site "$SITE" --ref "$REF" \
+            --base "$BASE_PATH" --out build/preview
       - name: Build
         working-directory: docs-site
         run: npm run site
