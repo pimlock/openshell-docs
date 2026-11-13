@@ -1,0 +1,41 @@
+---
+// Renders ```mermaid code blocks as diagrams in the browser. mermaid is loaded
+// only on pages that have one; without JavaScript the source stays visible.
+// Diagrams re-render when the reader switches between light and dark.
+---
+
+<script>
+  const blocks = [...document.querySelectorAll('.expressive-code:has(pre[data-language="mermaid"])')].map((ec) => {
+    const lines = ec.querySelectorAll('pre[data-language="mermaid"] .ec-line');
+    const el = document.createElement('div');
+    el.className = 'os-mermaid not-content';
+    el.dataset.source = [...lines].map((l) => l.textContent).join('\n');
+    ec.replaceWith(el);
+    return el;
+  });
+  if (blocks.length) {
+    const { default: mermaid } = await import('mermaid');
+    let n = 0;
+    const render = async () => {
+      const dark = document.documentElement.dataset.theme === 'dark';
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: dark ? 'dark' : 'neutral',
+        fontFamily: getComputedStyle(document.body).fontFamily,
+        securityLevel: 'strict',
+      });
+      for (const el of blocks) {
+        try {
+          const { svg } = await mermaid.render(`os-mermaid-${n++}`, el.dataset.source ?? '');
+          el.innerHTML = svg;
+        } catch (e) {
+          el.textContent = el.dataset.source ?? '';
+          el.classList.add('os-mermaid--error');
+          console.warn('mermaid:', e);
+        }
+      }
+    };
+    await render();
+    new MutationObserver(render).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  }
+</script>

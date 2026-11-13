@@ -2,6 +2,7 @@
 // Title + page actions + description.
 import Default from '@astrojs/starlight/components/PageTitle.astro';
 import PageActions from '../PageActions.astro';
+import Mermaid from '../Mermaid.astro';
 const { description } = Astro.locals.starlightRoute.entry.data;
 ---
 
@@ -10,3 +11,4 @@ const { description } = Astro.locals.starlightRoute.entry.data;
   <PageActions />
 </div>
 {description && <p class="os-lede">{description}</p>}
+<Mermaid />

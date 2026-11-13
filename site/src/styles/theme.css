@@ -535,3 +535,17 @@ html:has(.os-subtabs) { --sl-nav-height: calc(var(--os-header-h) + var(--os-tabs
 .os-diff-key { padding: 0 0.35rem; border-inline-start: 3px solid; }
 .os-diff-key--added { border-color: #3fa33a; background: color-mix(in srgb, #3fa33a 15%, transparent); }
 .os-diff-key--removed { border-color: #d0443e; background: color-mix(in srgb, #d0443e 15%, transparent); text-decoration: line-through; }
+
+/* Mermaid diagrams (src/components/Mermaid.astro) */
+.os-mermaid {
+  display: flex;
+  justify-content: center;
+  margin-block: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--os-border);
+  border-radius: var(--os-radius);
+  background: var(--os-surface);
+  overflow-x: auto;
+}
+.os-mermaid svg { max-width: 100%; height: auto; }
+.os-mermaid--error { justify-content: flex-start; font-family: var(--os-font-mono); font-size: 0.8125rem; white-space: pre; }

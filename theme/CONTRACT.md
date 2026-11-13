@@ -21,3 +21,6 @@ pages and release tags build unchanged.
 Plain `<div>` wrappers pass through. `<llms-only>` / `<llms-ignore>` are
 resolved by the assembler: the first appears only in the Markdown copy, the
 second only on the site. Fern's `## Heading {#id}` custom ids are kept as anchors.
+
+```mermaid code blocks render as diagrams in the browser (as in Fern); the
+Markdown copy keeps the source.
