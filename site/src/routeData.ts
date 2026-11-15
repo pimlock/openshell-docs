@@ -5,6 +5,9 @@ export const onRequest = defineRouteMiddleware((context) => {
   const route = context.locals.starlightRoute;
   const page = pageFor(route.id);
   if (!page) return; // 404 keeps Starlight's defaults
+  // Agents that fetch the HTML can find the Markdown copy (path + .md; see PageActions).
+  const md = context.url.pathname.replace(/\/$/, '') + '.md';
+  route.head.push({ tag: 'link', attrs: { rel: 'alternate', type: 'text/markdown', href: new URL(md, context.site ?? context.url).href } });
   route.sidebar = sidebarFor(page);
   // prev/next stay inside the current docset
   const links: any[] = [];
