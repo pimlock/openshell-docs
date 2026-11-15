@@ -1,0 +1,7 @@
+---
+// A Mermaid diagram rendered to SVG at build time (site/scripts/sync.mjs).
+// Colors come from CSS variables, so it follows light and dark mode.
+interface Props { svg: string }
+---
+
+<div class="os-mermaid not-content" set:html={Astro.props.svg} />

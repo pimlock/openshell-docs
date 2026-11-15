@@ -536,7 +536,7 @@ html:has(.os-subtabs) { --sl-nav-height: calc(var(--os-header-h) + var(--os-tabs
 .os-diff-key--added { border-color: #3fa33a; background: color-mix(in srgb, #3fa33a 15%, transparent); }
 .os-diff-key--removed { border-color: #d0443e; background: color-mix(in srgb, #d0443e 15%, transparent); text-decoration: line-through; }
 
-/* Mermaid diagrams (src/components/Mermaid.astro) */
+/* Mermaid diagrams, rendered at build time by pele (site/scripts/sync.mjs) */
 .os-mermaid {
   display: flex;
   justify-content: center;
@@ -546,6 +546,16 @@ html:has(.os-subtabs) { --sl-nav-height: calc(var(--os-header-h) + var(--os-tabs
   border-radius: var(--os-radius);
   background: var(--os-surface);
   overflow-x: auto;
+  --pele-bg: var(--os-surface);
+  --pele-fg: var(--os-fg);
+  --pele-muted: var(--os-muted);
+  --pele-line: var(--os-fg);
+  --pele-surface: var(--os-bg);
+  --pele-surface-alt: var(--os-surface);
+  --pele-border: var(--os-border);
+  --pele-accent: var(--os-accent);
+  --pele-font: var(--os-font-sans);
+  --pele-font-mono: var(--os-font-mono);
+  --pele-radius: var(--os-radius);
 }
 .os-mermaid svg { max-width: 100%; height: auto; }
-.os-mermaid--error { justify-content: flex-start; font-family: var(--os-font-mono); font-size: 0.8125rem; white-space: pre; }

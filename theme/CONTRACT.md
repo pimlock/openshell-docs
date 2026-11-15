@@ -22,5 +22,6 @@ Plain `<div>` wrappers pass through. `<llms-only>` / `<llms-ignore>` are
 resolved by the assembler: the first appears only in the Markdown copy, the
 second only on the site. Fern's `## Heading {#id}` custom ids are kept as anchors.
 
-```mermaid code blocks render as diagrams in the browser (as in Fern); the
-Markdown copy keeps the source.
+```mermaid code blocks become SVG diagrams at build time ([pele](https://pele.run),
+which follows Mermaid 12.1 syntax with its own layout); the Markdown copy keeps
+the source. A diagram pele can't render stays a code block, with a build warning.

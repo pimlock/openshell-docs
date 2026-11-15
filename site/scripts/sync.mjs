@@ -9,10 +9,13 @@
 //   banner    on dev and older versions, linking to the same page in the latest release
 //   pagefind  false on dev and older versions, so search returns the latest docs only
 //   template  splash on topic overview pages (no sidebar)
+// ```mermaid code blocks become SVG diagrams, rendered here with pele (the
+// Markdown copies keep the source).
 // ASSEMBLED and THEME_DIR let the preview build use this shell from elsewhere.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { render } from "pele";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const site = path.resolve(here, "..");
@@ -35,6 +38,23 @@ const latestHref = (p) => {
   return href(v.pages.includes(p.key) ? [v.prefix, p.key].filter(Boolean).join("/") : v.first);
 };
 const str = (v) => JSON.stringify(v);
+
+let diagrams = 0;
+const failed = [];
+/** Replaces ```mermaid blocks with SVG; a diagram that fails stays a code block. */
+function mermaid(body, file, mdx) {
+  return body.replace(/^```mermaid[^\n]*\n([\s\S]*?)^```[ \t]*$/gm, (block, source) => {
+    try {
+      const { svg } = render(source, { idPrefix: `d${diagrams}-`, fontFamily: "Geist, sans-serif" });
+      diagrams++;
+      // .md pages take raw HTML (one line, so no blank line ends the block)
+      return mdx ? `<Diagram svg={${str(svg)}} />` : `<div class="os-mermaid">${svg.replace(/\n/g, " ")}</div>`;
+    } catch (e) {
+      failed.push(`${file}: ${e.message.split("\n")[0]}`);
+      return block;
+    }
+  });
+}
 
 for (const file of fs.readdirSync(docsDir, { recursive: true })) {
   if (!/\.mdx?$/.test(file)) continue;
@@ -61,10 +81,16 @@ for (const file of fs.readdirSync(docsDir, { recursive: true })) {
     banner = `You are viewing ${d.title} ${page.version}. The latest version is ${d.latest}. <a href="${latestHref(page)}">Go to the latest version</a>.`;
   }
   if (banner) fm += `\npagefind: false\nbanner:\n  content: ${str(banner)}`;
-  let body = src.slice(m[0].length);
-  if (file.endsWith(".mdx")) {
-    const rel = path.relative(path.dirname(abs), barrel).split(path.sep).join("/");
-    body = `import { ${names.join(", ")} } from "${rel.startsWith(".") ? rel : "./" + rel}";\n\n${body}`;
+  const mdx = file.endsWith(".mdx");
+  const raw = src.slice(m[0].length);
+  let body = mermaid(raw, file, mdx);
+  if (mdx) {
+    const imp = (to) => {
+      const rel = path.relative(path.dirname(abs), to).split(path.sep).join("/");
+      return rel.startsWith(".") ? rel : "./" + rel;
+    };
+    const diagram = body !== raw ? `import Diagram from "${imp(path.join(site, "src/components/Diagram.astro"))}";\n` : "";
+    body = `import { ${names.join(", ")} } from "${imp(barrel)}";\n${diagram}\n${body}`;
   }
   fs.writeFileSync(abs, `---\n${fm}\n---\n${body}`);
 }
@@ -78,4 +104,5 @@ fs.cpSync(path.join(site, "static"), pub, { recursive: true });
 fs.cpSync(path.join(assembled, "public"), pub, { recursive: true });
 
 fs.copyFileSync(path.join(themeDir, "tokens.css"), path.join(site, "src/styles/tokens.css"));
-console.log(`synced ${pages.length} pages and ${names.length} components (base ${nav.base})`);
+for (const f of failed) console.warn(`warning: diagram left as code: ${f}`);
+console.log(`synced ${pages.length} pages, ${diagrams} diagrams and ${names.length} components (base ${nav.base})`);
