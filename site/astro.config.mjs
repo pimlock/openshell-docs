@@ -15,6 +15,7 @@ export default defineConfig({
       social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/pimlock/openshell-docs' }],
       customCss: ['./src/styles/tokens.css', './src/styles/theme.css'],
       head: [
+        { tag: 'link', attrs: { rel: 'apple-touch-icon', href: (process.env.BASE_PATH ?? '/') + 'apple-touch-icon.png' } },
         { tag: 'link', attrs: { rel: 'preconnect', href: 'https://fonts.googleapis.com' } },
         { tag: 'link', attrs: { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' } },
         { tag: 'link', attrs: { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap' } },
