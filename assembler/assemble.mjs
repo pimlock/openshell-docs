@@ -22,7 +22,7 @@
 //
 // Preview build (one repo, no access to the others):
 //   node assembler/assemble.mjs --preview driver-docker --path <checkout> \
-//     --index <site>/links.json --site <site url> [--ref pr-12] [--layout full] \
+//     --index <site>/links.json --site <site url> [--ref pr-12 --ref-url <PR or commit URL>] [--layout full] \
 //     [--branch <pr head branch> --edit-repo <owner/repo of that branch>]
 //     [--diff-base <checkout of the PR's base commit> --diff-label <name>]
 //
@@ -428,7 +428,7 @@ const local = releases;
 const nav = {
   title: manifest.site.title,
   base: BASE,
-  ...(PREVIEW ? { site: SITE, layout: LAYOUT, preview: { docset: PREVIEW, repo: local[0]?.repo, ref: local[0]?.ref, ...(diff ? { diff: { base: diff.base, changed: diff.changed.length, added: diff.added.length, removed: diff.removed.map((r) => r.title) } } : {}) } } : {}),
+  ...(PREVIEW ? { site: SITE, layout: LAYOUT, preview: { docset: PREVIEW, repo: local[0]?.repo, ref: local[0]?.ref, ...(args["ref-url"] ? { url: args["ref-url"] } : {}), ...(diff ? { diff: { base: diff.base, changed: diff.changed.length, added: diff.added.length, removed: diff.removed.map((r) => r.title) } } : {}) } } : {}),
   topics: manifest.topics.map((t) => ({ id: t.id, label: t.label, sources: t.sources, landing: landingOf(t) })),
   docsets,
 };

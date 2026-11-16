@@ -67,6 +67,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       PR: ${{ github.event.pull_request.number }}
       SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      REF_URL: ${{ github.event.pull_request.html_url || format('{0}/{1}/commit/{2}', github.server_url, github.repository, github.sha) }}
       DOCSET: ${{ inputs.docset }}
       SITE: ${{ inputs.site }}
       LAYOUT: ${{ inputs.layout }}
@@ -116,7 +117,7 @@ jobs:
           REF="${SHA::7}"
           if [ -n "$PR" ]; then REF="PR #$PR, $REF"; fi
           node assembler/assemble.mjs --preview "$DOCSET" --path ../source \
-            --index "$SITE/links.json" --site "$SITE" --ref "$REF" \
+            --index "$SITE/links.json" --site "$SITE" --ref "$REF" --ref-url "$REF_URL" \
             --base "$BASE_PATH" --layout "$LAYOUT" \
             --branch "$HEAD_REF" --edit-repo "$HEAD_REPO" --out build/preview 2>&1 | tee "$RUNNER_TEMP/assemble.log"
       - name: Build
@@ -143,7 +144,7 @@ jobs:
         run: |
           start=$(date +%s)
           node assembler/assemble.mjs --preview "$DOCSET" --path ../source \
-            --index "$SITE/links.json" --site "$SITE" --ref "PR #$PR, ${SHA::7}" \
+            --index "$SITE/links.json" --site "$SITE" --ref "PR #$PR, ${SHA::7}" --ref-url "$REF_URL" \
             --base "${BASE_PATH}diff/" --layout "$LAYOUT" --branch "$HEAD_REF" --edit-repo "$HEAD_REPO" \
             --diff-base ../base --diff-label "$BASE_REF" --out build/preview-diff
           ASSEMBLED=build/preview-diff BASE_PATH="${BASE_PATH}diff/" npm run site
