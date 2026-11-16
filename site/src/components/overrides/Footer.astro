@@ -1,0 +1,62 @@
+---
+// Starlight's footer (edit link, last updated, pagination) plus the notices
+// the CNCF website guidelines ask for: the CNCF line and logo (guideline 6)
+// and the LF Projects copyright and policies link (guideline 7, required).
+// https://github.com/cncf/foundation/blob/main/policies-guidance/website-guidelines.md
+import Default from '@astrojs/starlight/components/Footer.astro';
+const logo = (v: string) => `${import.meta.env.BASE_URL}cncf/cncf-${v}.svg`;
+---
+
+<Default />
+<div class="os-cncf not-content">
+  <p class="os-cncf-line">
+    We are a <a href="https://www.cncf.io/">Cloud Native Computing Foundation</a> sandbox project.
+  </p>
+  <a href="https://www.cncf.io/" class="os-cncf-logo" aria-label="Cloud Native Computing Foundation">
+    <img src={logo('color')} alt="" class="os-cncf-light" width="200" height="38" />
+    <img src={logo('white')} alt="" class="os-cncf-dark" width="200" height="38" />
+  </a>
+  <p class="os-cncf-legal">
+    Copyright OpenShell a Series of LF Projects, LLC<br />
+    For website terms of use, trademark policy and other project policies please see{" "}
+    <a href="https://lfprojects.org/policies/">lfprojects.org/policies/</a>.
+  </p>
+</div>
+
+<style>
+  .os-cncf {
+    margin-top: 2.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--os-border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    text-align: center;
+    font-size: var(--sl-text-xs);
+    color: var(--os-muted);
+  }
+  .os-cncf p {
+    margin: 0;
+  }
+  .os-cncf a {
+    color: inherit;
+  }
+  .os-cncf a:hover {
+    color: var(--os-fg);
+  }
+  .os-cncf-logo img {
+    display: block;
+    height: 2rem;
+    width: auto;
+  }
+  .os-cncf-dark {
+    display: none !important;
+  }
+  :global(:root[data-theme='dark']) .os-cncf-light {
+    display: none !important;
+  }
+  :global(:root[data-theme='dark']) .os-cncf-dark {
+    display: block !important;
+  }
+</style>

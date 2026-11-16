@@ -23,6 +23,7 @@ export default defineConfig({
         Header: './src/components/overrides/Header.astro',
         Sidebar: './src/components/overrides/Sidebar.astro',
         PageTitle: './src/components/overrides/PageTitle.astro',
+        Footer: './src/components/overrides/Footer.astro',
       },
       expressiveCode: {
         themes: ['github-dark-default', 'github-light'],
