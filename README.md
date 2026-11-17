@@ -1,142 +1,97 @@
 # OpenShell docs (multi-repo v0)
 
-Experiment: one docs site built from several repos, where each repo owns its
-docs and the site repo owns the build, theme and navigation. The site is
-published at <https://pimlock.github.io/openshell-docs/>.
+An experiment in building one docs site from several repos. Each repo keeps its
+docs next to its code and ships them with its releases. This repo holds no
+content: it owns the build, the theme and the navigation. The site is live at
+<https://pimlock.github.io/openshell-docs/>.
 
-| Repo | Docset | Format | Published versions |
+| Repo | Docset | Format | Versions |
 |---|---|---|---|
-| [NVIDIA/OpenShell](https://github.com/NVIDIA/OpenShell) (releases), [pimlock/OpenShell@multirepo-docs](https://github.com/pimlock/OpenShell/tree/multirepo-docs) (dev) | OpenShell (Platform) | Fern `docs/index.yml` | dev, 0.1.8, 0.1.7 |
-| [pimlock/openshell-sdk-python](https://github.com/pimlock/openshell-sdk-python) (fork) | Python SDK | `docs/docset.yml` | dev, 0.1.8 |
-| [pimlock/openshell-sdk-go](https://github.com/pimlock/openshell-sdk-go) (fork) | Go SDK | mdBook `docs/src/SUMMARY.md` | dev, 0.1.8, 0.1.7 |
-| [pimlock/openshell-driver-docker](https://github.com/pimlock/openshell-driver-docker) | Docker driver | `docs/docset.yml` | dev, 0.2.0, 0.1.0 |
-| [pimlock/openshell-driver-podman](https://github.com/pimlock/openshell-driver-podman) | Podman driver | `docs/docset.yml` | dev, 0.1.0 |
+| [NVIDIA/OpenShell](https://github.com/NVIDIA/OpenShell) (releases), [pimlock/OpenShell@multirepo-docs](https://github.com/pimlock/OpenShell/tree/multirepo-docs) (dev) | OpenShell (Platform) | Fern `index.yml` | dev, 0.1.8, 0.1.7 |
+| [pimlock/openshell-sdk-python](https://github.com/pimlock/openshell-sdk-python) | Python SDK | `docset.yml` | dev, 0.1.8 |
+| [pimlock/openshell-sdk-go](https://github.com/pimlock/openshell-sdk-go) | Go SDK | mdBook `SUMMARY.md` | dev, 0.1.8, 0.1.7 |
+| [pimlock/openshell-driver-docker](https://github.com/pimlock/openshell-driver-docker) | Docker driver | `docset.yml` | dev, 0.2.0, 0.1.0 |
+| [pimlock/openshell-driver-podman](https://github.com/pimlock/openshell-driver-podman) | Podman driver | `docset.yml` | dev, 0.1.0 |
 
 ## How it works
 
-**This repo holds no content.** [`sources.yml`](sources.yml) lists each
-source repo, where it's mounted, the path of its docs, and the refs to
-publish. A build:
+[`sources.yml`](sources.yml) lists each repo, where it's mounted and which refs
+to publish. A build:
 
-1. **Fetches each version from its ref.** `git ls-remote` resolves the tag or
-   branch to a commit, then a sparse, blobless, depth-1 fetch checks out only
-   the docs directory. Checkouts are cached by commit (`.cache/sources/`), so a
-   release is downloaded once. 13 versions take about 3 s cold. The commits
-   used are written to `build/assembled/sources.lock.json` and to the
-   workflow summary.
-2. **Reads each checkout in its own format** ([`assembler/adapters.mjs`](assembler/adapters.mjs)):
-   - `docset.yml` (native, the format new repos use),
-   - Fern `index.yml` (so OpenShell's existing release tags build unchanged,
-     including Fern's slug rules, folders and custom heading ids),
-   - mdBook `SUMMARY.md` (the Go SDK's tags).
-   The format is detected per checkout, so a repo can switch formats between
-   releases. Pages in every format may use the same component set
-   ([`theme/CONTRACT.md`](theme/CONTRACT.md)): Fern's names (`Note`, `Tabs`,
-   `Steps`, `Cards`…).
-3. **Publishes every version under its own path**: `/<mount>/<version>/<page>`,
-   e.g. `/0.1.8/about/overview/`, `/sdks/go/0.1.7/getting-started/`,
-   `/drivers/docker/dev/setup/`. `/<mount>/latest/<page>` redirects to the
-   newest release, and `/` to the newest OpenShell.
-4. **Checks every link** ([`assembler/assemble.mjs`](assembler/assemble.mjs)):
-   - Root-relative links (`/how-it-works/x`) stay in their own release.
-   - Links into another repo use its id as a scheme: `core://kubernetes/setup`,
-     `driver-docker://setup#mounts`. They resolve to that repo's latest release,
-     or to its `dev` from a dev page, and are checked down to the heading.
-   - Versions that can still change (`dev`, PR previews) fail the build on any
-     broken link. A published release only warns, and the link falls back to
-     the target release's first page. A frozen release must never block the
-     build.
-5. **Writes the site** (Starlight, [`site/`](site/)) plus Markdown for
-   agents: each page at `<url>.md`, `/llms.txt`, and `/<version>/llms.txt`.
+1. **Fetches each version from its tag or branch.** Only the docs directory is
+   fetched (sparse, blobless, depth 1) and cached by commit. The commits used
+   are recorded in `sources.lock.json`.
+2. **Reads each checkout in its own format**: `docset.yml`, Fern `index.yml`,
+   or mdBook ([`assembler/adapters.mjs`](assembler/adapters.mjs)). Old release
+   tags build as they are. Pages use one MDX component set, with Fern's names
+   ([`theme/CONTRACT.md`](theme/CONTRACT.md)).
+3. **Publishes each version at its own path**, such as `/0.1.8/about/overview/`
+   or `/drivers/docker/dev/setup/`. `/<mount>/latest/<page>` redirects to the
+   newest release.
+4. **Checks every link**, including links between repos (`core://kubernetes/setup`,
+   `driver-docker://setup#mounts`). Broken links fail dev builds and previews;
+   published releases only warn, so a frozen release never blocks the build.
+5. **Builds the site** with Starlight ([`site/`](site/)). Mermaid diagrams are
+   rendered to SVG at build time. Every page also gets a Markdown copy at
+   `<url>.md`, and the site gets an `/llms.txt`.
 
-### Navigation
+The site rebuilds hourly. In production, each source repo would trigger a
+rebuild when it pushes or tags.
 
-Topic tabs are Platform, SDKs and Drivers. A topic with several docsets has
-sub-tabs: Overview plus one tab per docset. On narrow screens the sub-tabs
-become a dropdown. The version dropdown sits at the top of the sidebar, and the
-sidebar shows only the current docset. Older and dev versions carry a banner and
-are left out of search. `/sdks/` and `/drivers/` are generated overview pages,
-each with a hand-written intro from [`topics/`](topics/) and one card per
-docset.
+## Why Starlight
 
-### Pull request previews in source repos
+We prototyped the same pages, theme and components on three generators. We
+then checked Hugo + Docsy separately, because CNCF recommends it.
 
-[`.github/workflows/preview.yml`](.github/workflows/preview.yml) is a reusable
-workflow. A source repo calls it with its docset id (see the caller in
-[openshell-driver-docker](https://github.com/pimlock/openshell-driver-docker/blob/main/.github/workflows/docs-preview.yml)).
-It builds **only that repo's docs**, with no access to the other repos.
-Everything it needs about them comes from the live site's
-[`links.json`](https://pimlock.github.io/openshell-docs/links.json): every
-published version's pages, headings and redirects, and every cross-repo link.
+| | First page load | Custom theme | Low maintenance | Result |
+|---|---|---|---|---|
+| **Starlight** (Astro) | 325 KB, 106 KB JS | 4/5 | 3/5 | **Chosen** |
+| Docusaurus | 767 KB, 569 KB JS | 4/5 | 4/5 | Fallback |
+| Fumadocs (Next.js) | 1,448 KB, 854 KB JS | 4/5 | 2/5 | Dropped |
+| Hugo + Docsy | 644 KB gzipped (Starlight: 109 KB) | 10 template overrides | 4 copied templates to re-merge on upgrades | Not worth a migration |
+
+- **Starlight** ships almost no JavaScript, has local search (Pagefind) built
+  in, and allowed exactly the layout we wanted through public extension points.
+  Per-component versions are a small routing step
+  ([`site/src/routeData.ts`](site/src/routeData.ts)). The risk is that about
+  400 lines of CSS target internal class names, and Starlight is still 0.x.
+- **Docusaurus** is the safest to upgrade and has versioning built in, but its
+  versions are copies kept in the site repo rather than read from each repo's
+  tags. Pages are about 5× heavier, search needs a third-party plugin, and
+  putting page actions in the title row needs an unsafe "swizzle".
+- **Fumadocs** has the AI features (Markdown copies, page actions) built in,
+  but its major versions follow Next.js, custom layouts are copied-in code with
+  no upgrade path, and it has essentially one maintainer.
+- **Hugo + Docsy** builds fast, but it can't read MDX. Either a converter
+  translates every page at build time, or every repo migrates to Hugo
+  shortcodes and old releases are frozen. Docsy assumes one version list per
+  site, so per-component versions needed template overrides. CNCF recommends
+  it but doesn't require it.
+
+A hosted docs platform was ruled out because we need versions per component,
+docs fetched from each repo's tags, and full control over the theme and the
+build.
+
+## Pull request previews
+
+A source repo calls the reusable workflow
+[`.github/workflows/preview.yml`](.github/workflows/preview.yml) with its docset
+id ([example caller](https://github.com/pimlock/openshell-driver-docker/blob/main/.github/workflows/docs-preview.yml)).
+It builds only that repo's docs. Everything about the other repos comes from the
+live site's [`links.json`](https://pimlock.github.io/openshell-docs/links.json).
 The preview:
 
-- checks outbound links against the index and points them at the live site;
-- fails if a page or heading that another repo (or a topic intro) links to
-  disappears, unless `docset.yml` lists the old page under `redirects:`
-  (the old URL then redirects to the new page);
-- is published to the source repo's `gh-pages` branch under `pr-<n>/`, so every
-  open PR has its own preview at the same time;
-- shows only the header ("OpenShell Docker Driver"), this docset's sidebar and
-  the content. Pass `layout: full` to get the site's tabs and version picker
-  instead, linking to the live site;
-- posts one comment on the PR, updated on every run: the link, or the errors
-  if the check fails. Closing the PR removes its preview.
+- is published to the repo's `gh-pages` branch under `pr-<n>/`, and linked from
+  one PR comment that is updated on every run;
+- fails if a page or heading that another repo links to disappears, unless
+  `docset.yml` lists it under `redirects:`;
+- with the `docs-diff` label (experimental), also builds `pr-<n>/diff/`, which
+  marks what the PR changed on each page ([`assembler/diff.mjs`](assembler/diff.mjs)).
 
-A source repo needs the caller workflow and GitHub Pages served from its
-`gh-pages` branch.
-
-### Experimental: diff view (`docs-diff` label)
-
-With the `docs-diff` label on a PR, the preview job also builds a copy at
-`pr-<n>/diff/` that marks what the PR changed, compared with the base branch:
-
-- added or changed blocks (paragraphs, headings, lists, code blocks,
-  components) are highlighted, and removed ones are shown struck through;
-- "changed" and "new" badges in the sidebar, and removed pages in the banner;
-- the PR comment links the diff view and each changed page.
-
-It's built to be judged and easily dropped:
-
-- **Code:** about 220 lines. Most of it is [`assembler/diff.mjs`](assembler/diff.mjs); the rest is the workflow steps, a 15-line comment script, and a few lines of CSS, sidebar and banner. Removing it means deleting `diff.mjs` and its call, and the label steps in the workflow.
-- **Cost:** 3 to 4 s per run, only when the label is set. It never fails the preview.
-- **Limits:**
-  - A block is the smallest unit, so a one-word edit marks the whole paragraph, and a change to one list item marks the whole list.
-  - Changes to a component's attributes, or inside a tab that isn't selected, are easy to miss.
-  - Title and description changes aren't marked.
-
-[driver-docker#1](https://github.com/pimlock/openshell-driver-docker/pull/1)
-has the label: <https://pimlock.github.io/openshell-driver-docker/pr-1/diff/drivers/docker/dev/setup/>.
-[driver-docker#4](https://github.com/pimlock/openshell-driver-docker/pull/4) is a
-larger restructuring (lists, components, a table row, a new page, a removed page):
-<https://pimlock.github.io/openshell-driver-docker/pr-4/diff/drivers/docker/dev/setup/>.
-
-Demo PRs:
-
-- [driver-docker#1](https://github.com/pimlock/openshell-driver-docker/pull/1) and [#3](https://github.com/pimlock/openshell-driver-docker/pull/3) pass, and their previews are live together at <https://pimlock.github.io/openshell-driver-docker/pr-1/> and [`/pr-3/`](https://pimlock.github.io/openshell-driver-docker/pr-3/).
-- [driver-docker#2](https://github.com/pimlock/openshell-driver-docker/pull/2) renames `setup` to `install`. It fails, because OpenShell core, the Podman driver and the Drivers overview link to `driver-docker://setup`.
-
-## Fetching from tags instead of copying
-
-The current OpenShell docs flow copies content at release time. Here nothing
-is copied: the build reads each release straight from its tag. What that buys:
-
-- **No sync jobs or copies to drift.** A release is whatever its tag holds.
-- **Old releases stay as they were written.** Adapters read old formats,
-  so moving to a new format doesn't require migrating past releases.
-- **Adding a version is one line** in `sources.yml` (or, later, automatic
-  from tags).
-
-Downsides, and what v0 does about them:
-
-| Downside | Mitigation |
-|---|---|
-| A release's docs can't be fixed after the tag (a typo, a broken link, a security note). | `ref` can be any ref. Point a version at a docs branch (`release-0.1-docs`) or a commit when it needs a fix. Link problems in releases only warn. |
-| Tags are mutable, and a moved tag silently changes a published version. | Every build records the commit each ref resolved to (`sources.lock.json`). A stricter mode could pin commits in a lock file and fail on drift. |
-| Old tags use old formats and conventions. | Adapters (Fern, mdBook) are needed for as long as those versions are published. They're about 150 lines here. |
-| Every build depends on every source repo being reachable. Private repos need a token. | Cached by commit, so only new commits are fetched. Use a read-only token or GitHub App for private repos. |
-| New releases and dev commits don't trigger a rebuild by themselves. | v0 rebuilds hourly. In production, each source repo would send `repository_dispatch` on push to main or on a tag. That needs a token in each repo. |
-| Build time grows with the number of versions, because every version is rebuilt every time. | Fine at this size (270 pages in ~6 s). Releases never change, so their output could be cached by commit. |
-| A release's links into other repos resolve to *their* latest, which may not match the version a reader runs. | Accepted: the support matrix answers "which versions go together". |
+Demo PRs: [driver-docker#1](https://github.com/pimlock/openshell-driver-docker/pull/1)
+and [#4](https://github.com/pimlock/openshell-driver-docker/pull/4) (with the
+diff view); [#2](https://github.com/pimlock/openshell-driver-docker/pull/2)
+renames a page that other repos link to, and fails.
 
 ## Run it locally
 
@@ -147,29 +102,15 @@ BASE_PATH=/openshell-docs/ npm run site
 node scripts/serve.mjs site/dist 4410 /openshell-docs/
 ```
 
-Use a local working tree instead of a source's dev branch with
-`--local core=../OpenShell`. Preview one repo against the published index:
-
-```shell
-node assembler/assemble.mjs --preview driver-docker --path ../openshell-driver-docker \
-  --index https://pimlock.github.io/openshell-docs/links.json \
-  --site https://pimlock.github.io/openshell-docs --out build/preview
-ASSEMBLED=build/preview npm run site
-```
-
-`node scripts/verify.mjs http://127.0.0.1:4410/openshell-docs` runs browser
-checks against a running site (needs `playwright-core`).
-
-## What changed in the source repos
-
-- **OpenShell** ([`multirepo-docs`](https://github.com/pimlock/OpenShell/compare/main...multirepo-docs)): removed the Python and Go SDK pages (their repos own them now). Links point at `sdk-python://` and at the driver docs, `driver-docker://setup` and `driver-podman://setup`. The rest is still Fern-format.
-- **sdk-python**: adds `docs/` (from OpenShell's `sdk/python.mdx`). Tag `v0.1.8-docs` stands in for the first release that ships docs.
-- **sdk-go**: unchanged mdBook docs; the dev branch adds a `core://` link.
-- **Driver repos**: new, docs only, with `v0.1.0`/`v0.2.0` tags.
+Use a local checkout instead of a source's dev branch with
+`--local core=../OpenShell`. `node scripts/verify.mjs http://127.0.0.1:4410/openshell-docs`
+runs browser checks against a running site (needs `playwright-core`).
 
 ## Not done yet
 
-- Search covers latest releases only (Pagefind could filter by version).
-- Redirects are static HTML pages, because GitHub Pages has no edge rules. A real host would use edge rules, and could serve Markdown by content negotiation.
-- Previews of PRs from forks can't publish or comment, because their token is read-only. That would need a `pull_request_target` or `workflow_run` split.
-- No automatic version discovery from tags.
+- GitHub Pages has no server-side rules, so redirects are HTML pages and URLs
+  can't serve another version's content. A host such as Netlify would fix both.
+- Previews of PRs from forks can't publish or comment, because their token is
+  read-only.
+- New versions are added to `sources.yml` by hand, not discovered from tags.
+- The site has the CNCF and LF Projects footer, but no analytics.
