@@ -41,7 +41,8 @@ rebuild when it pushes or tags.
 ## Why Starlight
 
 We prototyped the same pages, theme and components on three generators. We
-then checked Hugo + Docsy separately, because CNCF recommends it.
+then checked Hugo + Docsy separately, because CNCF recommends it. The full
+write-up is in [#1](https://github.com/pimlock/openshell-docs/issues/1).
 
 | | First page load | Custom theme | Low maintenance | Result |
 |---|---|---|---|---|
