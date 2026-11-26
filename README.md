@@ -75,24 +75,34 @@ build.
 
 ## Pull request previews
 
-A source repo calls the reusable workflow
-[`.github/workflows/preview.yml`](.github/workflows/preview.yml) with its docset
-id ([example caller](https://github.com/pimlock/openshell-driver-docker/blob/main/.github/workflows/docs-preview.yml)).
-It builds only that repo's docs. Everything about the other repos comes from the
-live site's [`links.json`](https://pimlock.github.io/openshell-docs/links.json).
-The preview:
+Source repos get a preview of their docs on every pull request, including
+pull requests from forks. Three reusable workflows split the work so that the
+pull request's code never runs with write access:
 
-- is published to the repo's `gh-pages` branch under `pr-<n>/`, and linked from
-  one PR comment that is updated on every run;
-- fails if a page or heading that another repo links to disappears, unless
-  `docset.yml` lists it under `redirects:`;
-- with the `docs-diff` label (experimental), also builds `pr-<n>/diff/`, which
-  marks what the PR changed on each page ([`assembler/diff.mjs`](assembler/diff.mjs)).
+| Workflow | Trigger in the source repo | Access | Does |
+|---|---|---|---|
+| [`preview-build.yml`](.github/workflows/preview-build.yml) | `pull_request` | read-only | Builds only that repo's docs against the live site's [`links.json`](https://pimlock.github.io/openshell-docs/links.json); uploads the site and `meta.json` |
+| [`preview-publish.yml`](.github/workflows/preview-publish.yml) | `workflow_run` | writes `gh-pages` | Trusts the PR number only if that PR's head is the built commit, checks the site is plain files, publishes it to `gh-pages/pr-<n>/` from an environment, and sets the `docs/preview` status and one PR comment |
+| [`preview-remove.yml`](.github/workflows/preview-remove.yml) | `pull_request_target` closed | writes `gh-pages` | Removes the preview |
 
-Demo PRs: [driver-docker#1](https://github.com/pimlock/openshell-driver-docker/pull/1)
-and [#4](https://github.com/pimlock/openshell-driver-docker/pull/4) (with the
-diff view); [#2](https://github.com/pimlock/openshell-driver-docker/pull/2)
-renames a page that other repos link to, and fails.
+Previews of branches in the source repo publish through the `docs-preview`
+environment; previews of forks go through `docs-preview-fork`, which has
+required reviewers, so a maintainer approves each fork preview before it is
+published. Both environments only allow `main`. Preview pages say they are
+unreviewed and are marked `noindex`. Broken links fail the build, as does a
+page or heading that another repo links to disappearing, unless `docset.yml`
+lists it under `redirects:`.
+
+Example callers: [driver-docker's workflows](https://github.com/pimlock/openshell-driver-docker/tree/main/.github/workflows).
+Test PRs: [#6](https://github.com/pimlock/openshell-driver-docker/pull/6)
+(branch: published, broken link reported, removed on close),
+[#7](https://github.com/pimlock/openshell-driver-docker/pull/7) (fork: waits
+for approval), and
+[#8](https://github.com/pimlock/openshell-driver-docker/pull/8) (fork that
+claims another PR's number: rejected).
+
+The older single-job [`preview.yml`](.github/workflows/preview.yml) (with the
+experimental `docs-diff` view) still works for same-repo pull requests.
 
 ## Run it locally
 
@@ -111,7 +121,5 @@ runs browser checks against a running site (needs `playwright-core`).
 
 - GitHub Pages has no server-side rules, so redirects are HTML pages and URLs
   can't serve another version's content. A host such as Netlify would fix both.
-- Previews of PRs from forks can't publish or comment, because their token is
-  read-only.
 - New versions are added to `sources.yml` by hand, not discovered from tags.
 - The site has the CNCF and LF Projects footer, but no analytics.
