@@ -84,6 +84,11 @@ pull request's code never runs with write access:
 | [`preview-build.yml`](.github/workflows/preview-build.yml) | `pull_request` | read-only | Builds only that repo's docs against the live site's [`links.json`](https://pimlock.github.io/openshell-docs/links.json); uploads the site and `meta.json` |
 | [`preview-publish.yml`](.github/workflows/preview-publish.yml) | `workflow_run` | writes `gh-pages` | Trusts the PR number only if that PR's head is the built commit, checks the site is plain files, publishes it to `gh-pages/pr-<n>/` from an environment, and sets the `docs/preview` status and one PR comment |
 | [`preview-remove.yml`](.github/workflows/preview-remove.yml) | `pull_request_target` closed | writes `gh-pages` | Removes the preview |
+| [`preview-prune.yml`](.github/workflows/preview-prune.yml) | `schedule` | writes `gh-pages` | Removes previews of pull requests that aren't open, and optionally previews older than `max-age-days` |
+
+`gh-pages` is always a single parentless commit: every change replaces the
+branch with `--force-with-lease` against the commit it started from, so its
+history never grows and concurrent publishes are redone instead of lost.
 
 Previews of branches in the source repo publish through the `docs-preview`
 environment; previews of forks go through `docs-preview-fork`, which has
