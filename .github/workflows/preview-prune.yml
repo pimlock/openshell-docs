@@ -1,0 +1,70 @@
+# Prune docs previews on a schedule.
+#
+# Removes the preview of every pull request that is no longer open, which
+# catches previews the close workflow missed (for example when it failed, or
+# when a pull request closed while workflows were disabled). With
+# max-age-days, it also removes previews published longer ago than that; the
+# next push to the pull request publishes it again.
+#
+# Runs from the default branch and never touches pull request code.
+#
+# Caller (source repo, .github/workflows/docs-preview-prune.yml):
+#
+#   name: Docs preview prune
+#   on:
+#     schedule:
+#       - cron: "23 4 * * *"
+#     workflow_dispatch:
+#   permissions: {}
+#   jobs:
+#     prune:
+#       uses: pimlock/openshell-docs/.github/workflows/preview-prune.yml@<sha>
+#       with:
+#         site-ref: <sha>       # the same commit as `uses:`
+#       permissions:
+#         contents: write       # push gh-pages
+#         pull-requests: read   # list open pull requests
+name: Docs preview prune
+
+on:
+  workflow_call:
+    inputs:
+      site-ref:
+        description: Commit of pimlock/openshell-docs whose scripts prune the previews. Pin it to the same commit as `uses:`.
+        required: false
+        type: string
+        default: main
+      max-age-days:
+        description: Also remove previews published more than this many days ago (0 keeps them while the pull request is open)
+        required: false
+        type: number
+        default: 0
+
+permissions: {}
+
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+    concurrency:
+      group: docs-preview-prune-${{ github.repository }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      MAX_AGE_DAYS: ${{ inputs.max-age-days }}
+    steps:
+      - name: Check out the preview scripts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: pimlock/openshell-docs
+          ref: ${{ inputs.site-ref }}
+          path: docs-site
+          sparse-checkout: scripts/preview
+          persist-credentials: false
+      - name: List open pull requests
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/pulls?state=open&per_page=100" --paginate --jq '.[].number' > "$RUNNER_TEMP/open.txt"
+          echo "$(wc -l < "$RUNNER_TEMP/open.txt") open pull requests"
+      - name: Prune gh-pages
+        run: docs-site/scripts/preview/pages.sh prune "$RUNNER_TEMP/open.txt" | tee -a "$GITHUB_STEP_SUMMARY"

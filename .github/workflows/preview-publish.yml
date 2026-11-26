@@ -168,6 +168,8 @@ jobs:
           fi
       - name: Publish to gh-pages/pr-${{ env.PR }}
         if: steps.current.outputs.stale != 'true'
+        env:
+          PREVIEW_SHA: ${{ github.event.workflow_run.head_sha }}
         run: docs-site/scripts/preview/pages.sh publish "pr-$PR" "$RUNNER_TEMP/site"
     outputs:
       stale: ${{ steps.current.outputs.stale }}
