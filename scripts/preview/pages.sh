@@ -11,6 +11,10 @@ set -euo pipefail
 action=$1
 slot=$2
 dist=${3:+$(cd "$3" && pwd)}
+if ! [[ "$slot" =~ ^(pr-[1-9][0-9]{0,6}|ref-[A-Za-z0-9._-]+)$ ]]; then
+  echo "bad preview folder: $slot" >&2
+  exit 1
+fi
 remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
 work=$(mktemp -d)
 
@@ -39,9 +43,9 @@ for attempt in 1 2 3 4 5; do
   touch .nojekyll # keep Astro's _astro/ folder
   write_index
   git add -A
-  if git diff --cached --quiet; then exit 0; fi
+  if git diff --cached --quiet; then echo "unchanged"; exit 0; fi
   git commit -qm "docs preview: $action $slot"
-  if git push -q origin gh-pages; then exit 0; fi
+  if git push -q origin gh-pages; then echo "$action $slot"; exit 0; fi
   echo "push rejected (attempt $attempt), retrying"
   sleep $((attempt * 3))
 done

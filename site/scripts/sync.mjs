@@ -71,7 +71,7 @@ for (const file of fs.readdirSync(docsDir, { recursive: true })) {
   if (page.preview) {
     const pv = nav.preview;
     const ref = pv.url ? `<a href="${pv.url}">${pv.ref}</a>` : pv.ref;
-    banner = `Preview of ${pv.repo} (${ref}). Only ${d.title} is built here; links to other docs open the <a href="${nav.site}/">live site</a>.`;
+    banner = `Unreviewed preview of ${pv.repo} (${ref}). Only ${d.title} is built here; links to other docs open the <a href="${nav.site}/">live site</a>.`;
     if (pv.diff) {
       const removed = pv.diff.removed.length ? ` Removed pages: ${pv.diff.removed.join(", ")}.` : "";
       banner = `Changes in ${ref} against ${pv.diff.base}: <span class="os-diff-key os-diff-key--added">added</span> <span class="os-diff-key os-diff-key--removed">removed</span>. Changed pages: ${pv.diff.changed}, new: ${pv.diff.added} (marked in the sidebar).${removed}`;

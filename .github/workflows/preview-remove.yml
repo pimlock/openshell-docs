@@ -1,0 +1,64 @@
+# Remove a pull request's docs preview when it closes. Step 3 of 3.
+#
+# Runs on pull_request_target, so it runs the caller workflow from the base
+# branch. It never checks out the pull request; the pull request number comes
+# from the event.
+#
+# Caller (source repo, .github/workflows/docs-preview-close.yml):
+#
+#   name: Docs preview close
+#   on:
+#     pull_request_target:
+#       types: [closed]
+#   permissions: {}
+#   jobs:
+#     remove:
+#       uses: pimlock/openshell-docs/.github/workflows/preview-remove.yml@<sha>
+#       with:
+#         site-ref: <sha>       # the same commit as `uses:`
+#       permissions:
+#         contents: write       # push gh-pages
+#         pull-requests: write  # update the comment
+name: Docs preview remove
+
+on:
+  workflow_call:
+    inputs:
+      site-ref:
+        description: Commit of pimlock/openshell-docs whose scripts remove the preview. Pin it to the same commit as `uses:`.
+        required: false
+        type: string
+        default: main
+
+permissions: {}
+
+jobs:
+  remove:
+    if: github.event_name == 'pull_request_target' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Check out the preview scripts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: pimlock/openshell-docs
+          ref: ${{ inputs.site-ref }}
+          path: docs-site
+          sparse-checkout: scripts/preview
+          persist-credentials: false
+      - name: Remove gh-pages/pr-${{ env.PR }}
+        id: remove
+        run: |
+          out=$(docs-site/scripts/preview/pages.sh remove "pr-$PR")
+          echo "$out"
+          if [ "$out" != unchanged ]; then echo "removed=true" >> "$GITHUB_OUTPUT"; fi
+      - name: Update the comment
+        if: steps.remove.outputs.removed == 'true'
+        run: |
+          echo "**Docs preview**: removed, because the pull request is closed." > "$RUNNER_TEMP/comment.md"
+          docs-site/scripts/preview/comment.sh --update-only "$RUNNER_TEMP/comment.md"

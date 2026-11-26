@@ -1,0 +1,132 @@
+# Build a docs preview for a source repo's pull request. Step 1 of 3.
+#
+# Runs with the pull request's code, including pull requests from forks, so
+# it gets a read-only token and no secrets. It builds ONLY the calling repo's
+# docs with this repo's theme and assembler and uploads two artifacts:
+#
+#   docs-preview-meta  meta.json: pull request number, head commit, docset.
+#                      Uploaded even when the build fails, so the publish
+#                      step can report the failure on the pull request.
+#   docs-preview-site  the built site, for the publish step.
+#
+# Nothing here is trusted by the publish step: a pull request can change the
+# caller workflow and upload anything under these names.
+# preview-publish.yml verifies the pull request number against the commit
+# that was built and treats the site as plain files.
+#
+# Caller (source repo, .github/workflows/docs-preview.yml). The workflow
+# name must match the `workflows:` filter in the publish caller.
+#
+#   name: Docs preview
+#   on:
+#     pull_request:
+#       paths: [docs/**]
+#   permissions: {}
+#   jobs:
+#     build:
+#       uses: pimlock/openshell-docs/.github/workflows/preview-build.yml@<sha>
+#       with:
+#         docset: driver-docker
+#         site-ref: <sha>       # the same commit as `uses:`
+#       permissions:
+#         contents: read
+name: Docs preview build
+
+on:
+  workflow_call:
+    inputs:
+      docset:
+        description: Docset id of the calling repo (see sources.yml)
+        required: true
+        type: string
+      site-ref:
+        description: Commit of pimlock/openshell-docs to build with. Pin it to the same commit as `uses:`.
+        required: false
+        type: string
+        default: main
+      site:
+        description: Live site that publishes links.json
+        required: false
+        type: string
+        default: https://pimlock.github.io/openshell-docs
+      layout:
+        description: "fragment: header naming the docset, its sidebar and content; full: the site's tabs and version picker"
+        required: false
+        type: string
+        default: fragment
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      PR: ${{ github.event.pull_request.number }}
+      SHA: ${{ github.event.pull_request.head.sha }}
+      REF_URL: ${{ github.event.pull_request.html_url }}
+      DOCSET: ${{ inputs.docset }}
+      SITE: ${{ inputs.site }}
+      LAYOUT: ${{ inputs.layout }}
+      HEAD_REF: ${{ github.head_ref }}
+      HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+      REPO_NAME: ${{ github.event.repository.name }}
+      OWNER: ${{ github.repository_owner }}
+    steps:
+      - name: Write the preview metadata
+        run: |
+          mkdir -p "$RUNNER_TEMP/meta"
+          jq -n --argjson pr "$PR" --arg sha "$SHA" --arg docset "$DOCSET" \
+            '{pr: $pr, head_sha: $sha, docset: $docset}' > "$RUNNER_TEMP/meta/meta.json"
+          echo "BASE_PATH=/$REPO_NAME/pr-$PR/" >> "$GITHUB_ENV"
+      - name: Check out the pull request
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: source
+          persist-credentials: false
+      - name: Check out the docs site (theme + assembler)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: pimlock/openshell-docs
+          ref: ${{ inputs.site-ref }}
+          path: docs-site
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - run: npm ci
+        working-directory: docs-site
+      - name: Assemble this docset against the published link index
+        working-directory: docs-site
+        run: |
+          node assembler/assemble.mjs --preview "$DOCSET" --path ../source \
+            --index "$SITE/links.json" --site "$SITE" --ref "PR #$PR, ${SHA::7}" --ref-url "$REF_URL" \
+            --base "$BASE_PATH" --layout "$LAYOUT" \
+            --branch "$HEAD_REF" --edit-repo "$HEAD_REPO" --out build/preview
+      - name: Build
+        working-directory: docs-site
+        run: npm run site
+        env:
+          ASSEMBLED: build/preview
+          PREVIEW: "1"
+          SITE_URL: https://${{ github.repository_owner }}.github.io
+      - name: Upload the site
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: docs-preview-site
+          path: docs-site/site/dist
+          retention-days: 7
+          if-no-files-found: error
+      - name: Upload the metadata
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: docs-preview-meta
+          path: ${{ runner.temp }}/meta/meta.json
+          retention-days: 7
+      - name: Summary
+        run: |
+          echo "Built the $DOCSET preview for PR #$PR at ${SHA::7}. The Docs preview publish workflow publishes it." >> "$GITHUB_STEP_SUMMARY"
