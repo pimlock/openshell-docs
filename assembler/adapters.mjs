@@ -13,14 +13,30 @@
 //   fern    Fern's index.yml + MDX (pages named by Fern's slug rules), so
 //           tags cut before the move build unchanged
 //   mdbook  SUMMARY.md + Markdown (pages named by file path)
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import YAML from "yaml";
 
 const walk = (dir) =>
   fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
-    e.isDirectory() ? walk(path.join(dir, e.name)) : [path.join(dir, e.name)],
+    e.isDirectory() ? (e.name === "node_modules" ? [] : walk(path.join(dir, e.name))) : [path.join(dir, e.name)],
   );
+// The files of a docs directory, as paths relative to it. In a git checkout,
+// only what git tracks or would track (not ignored), so a local build sees
+// what a fetched one sees and skips node_modules/, build output and other
+// ignored files. Outside git, every file except node_modules/.
+function filesOf(dir) {
+  let listed;
+  try {
+    listed = execFileSync("git", ["-C", dir, "ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", "."], {
+      encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], maxBuffer: 64 << 20,
+    });
+  } catch {
+    return walk(dir).map((f) => posix(path.relative(dir, f)));
+  }
+  return [...new Set(listed.split("\0").filter(Boolean))].filter((r) => fs.statSync(path.join(dir, r), { throwIfNoEntry: false })?.isFile());
+}
 const posix = (p) => p.split(path.sep).join("/");
 export const join = (...p) => p.filter(Boolean).join("/").replace(/\/+/g, "/").replace(/^\/|\/$/g, "");
 export const pageKey = (rel) => {
@@ -45,9 +61,12 @@ export function read(dir, problems) {
   const format = detect(dir);
   const out = { native, fern, mdbook }[format](dir, problems);
   const pageFiles = new Set(out.pages.map((p) => p.relPath));
+  // Not assets: pages, _ and . files, sources, and the docs build's own
+  // package.json (docs/ can hold the package that builds it).
   const skip = (rel) =>
-    pageFiles.has(rel) || /(^|\/)(_|\.)/.test(rel) || /\.(mdx?|ya?ml|toml|tsx?|jsx?)$/.test(rel);
-  out.assets = walk(dir).map((f) => posix(path.relative(dir, f))).filter((r) => !skip(r));
+    pageFiles.has(rel) || /(^|\/)(_|\.)/.test(rel) || /\.(mdx?|ya?ml|toml|tsx?|jsx?)$/.test(rel) ||
+    /(^|\/)package(-lock)?\.json$/.test(rel);
+  out.assets = filesOf(dir).filter((r) => !skip(r));
   return { format, ...out };
 }
 

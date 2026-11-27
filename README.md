@@ -101,7 +101,10 @@ Netlify it labels the build with the pull request. It never writes into
 `node_modules`: it copies the site shell into `.cache/openshell-docs/`. See
 [pimlock/openshell-driver-docker](https://github.com/pimlock/openshell-driver-docker)
 for a repo set up this way (`package.json`, `netlify.toml`, a CI check, and
-Dependabot).
+Dependabot). The `package.json` can also sit in the docs directory itself:
+pages and assets are read from the files git tracks or would track, so
+ignored `node_modules/`, `build/` and `.cache/` are never published, and
+neither is `package.json`.
 
 ### Releasing the package
 
