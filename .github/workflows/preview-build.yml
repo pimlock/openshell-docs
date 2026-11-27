@@ -54,6 +54,11 @@ on:
         required: false
         type: string
         default: fragment
+      retention-days:
+        description: Days to keep the built site. Repos that deploy Pages from Actions rebuild every preview from these artifacts, so a preview disappears when its artifact expires.
+        required: false
+        type: number
+        default: 7
 
 permissions:
   contents: read
@@ -110,7 +115,7 @@ jobs:
         with:
           name: docs-preview-site
           path: docs-site/site/dist
-          retention-days: 7
+          retention-days: ${{ inputs.retention-days }}
           if-no-files-found: error
       - name: Upload the metadata
         if: always()
