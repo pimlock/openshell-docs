@@ -1,0 +1,94 @@
+# Release the build package (@pimlock/openshell-docs-build) that source repos
+# install to build their docs. Run it by hand from the Actions tab.
+#
+#   1. Bumps the version in package.json (patch, minor or major).
+#   2. Packs the package and builds a real docset with the packed tarball,
+#      installed the way a source repo installs it.
+#   3. Commits the version, tags v<version>, and creates a GitHub release
+#      with the tarball attached.
+#   4. With the repository variable NPM_PUBLISH set to true, publishes to
+#      npmjs.org through trusted publishing (OIDC, no stored token).
+#
+# Major: a change that existing source repos must adapt to (docset.yml,
+# links.json, CLI options). Minor: new features. Patch: fixes and theme
+# changes. Production builds from main and never waits for a release.
+name: Release package
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version bump
+        required: true
+        type: choice
+        options: [patch, minor, major]
+
+permissions: {}
+
+concurrency:
+  group: release-package
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # version commit, tag and release
+      id-token: write # npm trusted publishing and provenance
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BUMP: ${{ inputs.bump }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: true # pushes the version commit and tag
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - run: npm ci
+      - name: Bump the version
+        id: version
+        run: |
+          version=$(npm version "$BUMP" --no-git-tag-version | sed 's/^v//')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Releasing $version"
+      - name: Pack
+        id: pack
+        run: |
+          tarball=$(npm pack --silent --pack-destination "$RUNNER_TEMP")
+          echo "tarball=$RUNNER_TEMP/$tarball" >> "$GITHUB_OUTPUT"
+      - name: Check out a source repo to build
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: pimlock/openshell-driver-docker
+          path: smoke/driver-docker
+          persist-credentials: false
+      - name: Build it with the packed tarball
+        working-directory: smoke/driver-docker
+        env:
+          TARBALL: ${{ steps.pack.outputs.tarball }}
+        # Installs the tarball this run just packed, the way a source repo would.
+        run: | # zizmor: ignore[adhoc-packages]
+          rm -f package.json package-lock.json
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund -D "$TARBALL"
+          npx openshell-docs check --docset driver-docker
+          npx openshell-docs build --docset driver-docker --out "$RUNNER_TEMP/smoke-site"
+          test -f "$RUNNER_TEMP/smoke-site/drivers/docker/dev/setup/index.html"
+      - name: Commit, tag and release
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          TARBALL: ${{ steps.pack.outputs.tarball }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -q -am "chore(release): $VERSION"
+          git tag "v$VERSION"
+          git push -q origin HEAD:main "v$VERSION"
+          gh release create "v$VERSION" "$TARBALL" --title "v$VERSION" --generate-notes
+      - name: Publish to npm
+        if: vars.NPM_PUBLISH == 'true'
+        env:
+          TARBALL: ${{ steps.pack.outputs.tarball }}
+        run: npm publish --provenance --access public "$TARBALL"

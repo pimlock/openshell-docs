@@ -85,11 +85,43 @@ npm ci
 npm run docset -- --docset driver-docker --path ../openshell-driver-docker --out /tmp/docs
 ```
 
-Source repos don't run this directly. Each has a small `scripts/docs.sh` that
-fetches this repo at a pinned commit (`docs/website.env`) and runs it, for
-local builds (`scripts/docs.sh serve`), Netlify deploy previews
-(`netlify.toml`) and the GitHub Pages preview build. See
-[pimlock/openshell-driver-docker](https://github.com/pimlock/openshell-driver-docker).
+Source repos run it through the `@pimlock/openshell-docs-build` package,
+which this repo publishes. The package holds the assembler, the site shell
+and the theme, and an `openshell-docs` command:
+
+```shell
+npm install -D @pimlock/openshell-docs-build
+npx openshell-docs check --docset driver-docker   # links only, under a second
+npx openshell-docs build --docset driver-docker   # site in build/docs/
+npx openshell-docs serve --docset driver-docker   # build, then serve on :4410
+```
+
+The command builds the git checkout around the current directory. On
+Netlify it labels the build with the pull request. It never writes into
+`node_modules`: it copies the site shell into `.cache/openshell-docs/`. See
+[pimlock/openshell-driver-docker](https://github.com/pimlock/openshell-driver-docker)
+for a repo set up this way (`package.json`, `netlify.toml`, a CI check, and
+Dependabot).
+
+### Releasing the package
+
+Production builds from `main` and never waits for a release. Source repos
+take changes when a release reaches them:
+
+1. Run the **Release package** workflow on `main` and pick patch, minor or
+   major. Major means source repos must change something (`docset.yml`,
+   `links.json`, command options).
+2. It bumps `package.json`, packs the package, and builds
+   openshell-driver-docker with the packed tarball installed the way a source
+   repo installs it. A broken package stops here.
+3. It commits the version, tags `v<version>`, and creates a GitHub release
+   with the tarball.
+4. With the repository variable `NPM_PUBLISH=true` it publishes to npmjs.org
+   with trusted publishing (no token). Dependabot in each source repo then
+   opens a PR whose docs check runs on the new version.
+
+Until the package is on npmjs.org, source repos install the release tarball
+by URL, which Dependabot can't update.
 
 ## Pull request previews
 

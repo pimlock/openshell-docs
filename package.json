@@ -1,7 +1,39 @@
 {
-  "name": "openshell-docs",
-  "private": true,
+  "name": "@pimlock/openshell-docs-build",
+  "version": "0.0.0",
+  "description": "Build one repo's docs the way the OpenShell docs website shows them",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pimlock/openshell-docs.git"
+  },
   "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "bin": {
+    "openshell-docs": "bin/openshell-docs.mjs"
+  },
+  "files": [
+    "bin/",
+    "assembler/",
+    "scripts/docset.mjs",
+    "scripts/redirects.mjs",
+    "scripts/serve.mjs",
+    "theme/",
+    "site/",
+    "!site/dist/",
+    "!site/.astro/",
+    "!site/node_modules/",
+    "!site/public/",
+    "!site/src/content/docs/",
+    "!site/src/generated/",
+    "!site/src/styles/tokens.css"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "scripts": {
     "assemble": "node assembler/assemble.mjs",
     "sync": "node site/scripts/sync.mjs",
