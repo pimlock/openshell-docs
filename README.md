@@ -73,6 +73,24 @@ A hosted docs platform was ruled out because we need versions per component,
 docs fetched from each repo's tags, and full control over the theme and the
 build.
 
+## Build one repo's docs
+
+`npm run docset` builds a single repo's docs from a local checkout, the way
+the live site shows them. Links into other repos are checked against the
+live site's `links.json`; the last copy is kept in `.cache/` for builds
+without network.
+
+```shell
+npm ci
+npm run docset -- --docset driver-docker --path ../openshell-driver-docker --out /tmp/docs
+```
+
+Source repos don't run this directly. Each has a small `scripts/docs.sh` that
+fetches this repo at a pinned commit (`docs/website.env`) and runs it, for
+local builds (`scripts/docs.sh serve`), Netlify deploy previews
+(`netlify.toml`) and the GitHub Pages preview build. See
+[pimlock/openshell-driver-docker](https://github.com/pimlock/openshell-driver-docker).
+
 ## Pull request previews
 
 Source repos get a preview of their docs on every pull request, including
