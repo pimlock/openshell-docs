@@ -7,7 +7,8 @@
     "sync": "node site/scripts/sync.mjs",
     "build": "npm run assemble && npm run site",
     "site": "npm run sync && astro build --root site && node scripts/redirects.mjs site/dist",
-    "dev": "npm run sync && astro dev --root site"
+    "dev": "npm run sync && astro dev --root site",
+    "docset": "node scripts/docset.mjs"
   },
   "dependencies": {
     "@astrojs/starlight": "0.42.10",

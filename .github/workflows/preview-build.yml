@@ -99,20 +99,12 @@ jobs:
           node-version: 24
       - run: npm ci
         working-directory: docs-site
-      - name: Assemble this docset against the published link index
+      - name: Build this docset against the published link index
         working-directory: docs-site
         run: |
-          node assembler/assemble.mjs --preview "$DOCSET" --path ../source \
-            --index "$SITE/links.json" --site "$SITE" --ref "PR #$PR, ${SHA::7}" --ref-url "$REF_URL" \
-            --base "$BASE_PATH" --layout "$LAYOUT" \
-            --branch "$HEAD_REF" --edit-repo "$HEAD_REPO" --out build/preview
-      - name: Build
-        working-directory: docs-site
-        run: npm run site
-        env:
-          ASSEMBLED: build/preview
-          PREVIEW: "1"
-          SITE_URL: https://${{ github.repository_owner }}.github.io
+          npm run docset -- --docset "$DOCSET" --path ../source --site "$SITE" \
+            --ref "PR #$PR, ${SHA::7}" --ref-url "$REF_URL" --base "$BASE_PATH" --layout "$LAYOUT" \
+            --branch "$HEAD_REF" --edit-repo "$HEAD_REPO" --site-url "https://$OWNER.github.io"
       - name: Upload the site
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
